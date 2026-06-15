@@ -23,35 +23,26 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # ── 3. SSH 调试 ──
-      #    触发方式：在 PR 评论区发 /debug
-      - name: Setup SSH for debugging
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-actor: false
-          limit-access-to-users: cyrixvvv
-
-      # ── 4. 安装 Android SDK ──
-      #    packages 用单行空格分隔字符串
+      # ── 3. 安装 Android SDK ──
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
-      # ── 5. 生成 Gradle Wrapper（项目没有 gradlew） ──
+      # ── 4. 生成 Gradle Wrapper（项目没有 gradlew） ──
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.2
 
-      # ── 6. 编译 Debug APK ──
+      # ── 5. 编译 Debug APK ──
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      # ── 7. 运行单元测试 ──
+      # ── 6. 运行单元测试 ──
       - name: Run unit tests
         run: ./gradlew test
 
-      # ── 8. 上传构建产物 ──
+      # ── 7. 上传构建产物 ──
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
