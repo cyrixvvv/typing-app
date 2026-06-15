@@ -76,11 +76,11 @@ class ScoreManager(context: Context) {
             .apply()
     }
 
-    fun getAllRecords(): List<RecordEntity> {
+    suspend fun getAllRecords(): List<RecordEntity> {
         return dao.getAll()
     }
 
-    fun avgAccuracyForMode(mode: String): Float {
+    suspend fun avgAccuracyForMode(mode: String): Float {
         return dao.avgAccuracy(mode) ?: 0f
     }
 }

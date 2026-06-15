@@ -93,8 +93,8 @@ class AdvancedModeActivity : TypingScreenActivity() {
 
     private fun startProgressUpdate() {
         updateTimer = Timer("progress_update", false)
-        updateTimer?.scheduleAtFixedRate(0, 500) {
-            runOnUiThread {
+        updateTimer?.scheduleAtFixedRate(0L, 500L) {
+            runOnUiThread(Runnable {
                 if (engine.isRunning && !engine.isComplete()) {
                     binding.tvWpmValue.text = String.format("%.0f", engine.calculateWpm())
                     binding.tvAccuracyValue.text = String.format("%.0f%%", engine.calculateAccuracy())
@@ -104,7 +104,7 @@ class AdvancedModeActivity : TypingScreenActivity() {
 
                     updateEncouragement()
                 }
-            }
+            })
         }
     }
 

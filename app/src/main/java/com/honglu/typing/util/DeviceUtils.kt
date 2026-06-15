@@ -10,7 +10,7 @@ object DeviceUtils {
      */
     fun isPhysicalKeyboard(event: android.view.KeyEvent): Boolean {
         val device = event.device ?: return false
-        val source = device.source
+        val source = device.source()
         return (source and android.view.InputDevice.SOURCE_KEYBOARD) != 0 &&
                !device.isVirtual
     }
@@ -21,7 +21,7 @@ object DeviceUtils {
     fun isRemoteControl(event: android.view.KeyEvent): Boolean {
         val device = event.device ?: return false
         // D-pad events from leanback often have no device or are marked as gamepad
-        return (device.source and android.view.InputDevice.SOURCE_DPAD) != 0
+        return (device.source() and android.view.InputDevice.SOURCE_DPAD) != 0
     }
 
     /**
