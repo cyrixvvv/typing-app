@@ -26,8 +26,16 @@ jobs:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
+      - name: Clear stale build artifacts
+        run: |
+          ./gradlew clean || true
+          rm -rf ~/.gradle/caches/build-cache-* || true
+          rm -rf .gradle 2>/dev/null || true
+          # Touch all source files to update timestamps
+          find . -name "*.kt" -exec touch {} \; -o -name "*.xml" -exec touch {} \; -o -name "*.gradle" -exec touch {} \;
+
       - name: Build Release APKs (armeabi-v7a + arm64-v8a)
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-build-cache --rerun-tasks 2>&1 | tail -50
 
       - name: Upload Release APK - armeabi-v7a
         uses: actions/upload-artifact@v4
