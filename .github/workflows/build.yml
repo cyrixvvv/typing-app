@@ -10,13 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # ── SSH 调试开关 ──
-    #    触发方式：在 PR 评论区发送 /debug 命令
-    #    断开 SSH 即可关闭调试模式
-    #    关闭方式：在 PR 评论区发送 /end-ssh 命令
-    #    或重新触发 workflow
-    continue-on-error: true
-
     steps:
       # ── 1. 检出代码 ──
       - name: Checkout
@@ -30,7 +23,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # ── 3. 安装 SSH，开启调试模式 ──
+      # ── 3. SSH 调试（按需开启） ──
       - name: Setup SSH for debugging
         uses: lhotari/action-upterm@v1
         if: false
@@ -38,16 +31,16 @@ jobs:
           limit-access-to-actor: false
           limit-access-to-users: cyrixvvv
 
-      # ── 4. 安装 Android SDK Command Line Tools ──
-      #    用官方 action，PATH 和环境变量自动处理
+      # ── 4. 安装 Android SDK ──
+      #    packages 用数组格式，每个包一行
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          cmdline-tools-version: 9477386
-          packages: |
-            platforms;android-33
-            build-tools;33.0.2
-            platform-tools
+          cmdline-tools-version: '9.0'
+          packages:
+            - platforms;android-33
+            - build-tools;33.0.2
+            - platform-tools
 
       # ── 5. 生成 Gradle Wrapper（项目没有 gradlew） ──
       - name: Generate Gradle Wrapper
