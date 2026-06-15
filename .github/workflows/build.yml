@@ -43,7 +43,15 @@ jobs:
           find . -name "*.kt" -exec touch {} \; -o -name "*.xml" -exec touch {} \; -o -name "*.gradle" -exec touch {} \;
 
       - name: Build Release APKs (armeabi-v7a + arm64-v8a)
-        run: ./gradlew assembleRelease --no-build-cache --rerun-tasks 2>&1 | tail -50
+        run: |
+          EXIT_CODE=0
+          ./gradlew assembleRelease --no-build-cache --rerun-tasks 2>&1 | tee /tmp/build_output.txt || EXIT_CODE=$?
+          echo "--- BUILD OUTPUT (last 30 lines) ---"
+          tail -30 /tmp/build_output.txt
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Build failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: Upload Release APK - armeabi-v7a
         if: success()
