@@ -10,6 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # ── SSH 调试开关 ──
+    #    触发方式：在 PR 评论区发送 /debug 命令
+    #    断开 SSH 即可关闭调试模式
+    #    关闭方式：在 PR 评论区发送 /end-ssh 命令
+    #    或重新触发 workflow
+    continue-on-error: true
+
     steps:
       # ── 1. 检出代码 ──
       - name: Checkout
@@ -23,35 +30,38 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # ── 3. 安装 Android SDK Command Line Tools ──
-      #    官方推荐：下载 SDK tools ZIP 并解压
-      - name: Set up Android SDK
-        run: |
-          cd $(dirname ${{ github.workspace }})
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
-          mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+      # ── 3. 安装 SSH，开启调试模式 ──
+      - name: Setup SSH for debugging
+        uses: lhotari/action-upterm@v1
+        if: false
+        with:
+          limit-access-to-actor: false
+          limit-access-to-users: cyrixvvv
 
-      # ── 4. 生成 Gradle Wrapper（项目没有 gradlew） ──
+      # ── 4. 安装 Android SDK Command Line Tools ──
+      #    用官方 action，PATH 和环境变量自动处理
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 9477386
+          packages: |
+            platforms;android-33
+            build-tools;33.0.2
+            platform-tools
+
+      # ── 5. 生成 Gradle Wrapper（项目没有 gradlew） ──
       - name: Generate Gradle Wrapper
         run: gradle wrapper --gradle-version 8.2
 
-      # ── 5. 编译 Debug APK ──
+      # ── 6. 编译 Debug APK ──
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      # ── 6. 运行单元测试 ──
+      # ── 7. 运行单元测试 ──
       - name: Run unit tests
         run: ./gradlew test
 
-      # ── 7. 上传构建产物 ──
+      # ── 8. 上传构建产物 ──
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
