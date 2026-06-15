@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "title": "The Quick Brown Fox",
+      "text": "The quick brown fox jumps over the lazy dog."
+    },
+    {
+      "id": 2,
+      "title": "To Be or Not to Be",
+      "text": "To be or not to be, that is the question."
+    },
+    {
+      "id": 3,
+      "title": "Jack and Jill",
+      "text": "Jack and Jill went up the hill to fetch a pail of water."
+    },
+    {
+      "id": 4,
+      "title": "Simple Reading",
+      "text": "The sun is warm. The sky is blue. I like to play outside."
+    },
+    {
+      "id": 5,
+      "title": "My Family",
+      "text": "My family is small. I have a mother and a father. I have a brother and a sister."
+    },
+    {
+      "id": 6,
+      "title": "At School",
+      "text": "I go to school every day. I learn to read and write. I like my teacher."
+    },
+    {
+      "id": 7,
+      "title": "The Four Seasons",
+      "text": "Spring is warm. Summer is hot. Fall is cool. Winter is cold."
+    },
+    {
+      "id": 8,
+      "title": "Animals",
+      "text": "The cat sits on the mat. The dog runs in the yard. The birds fly in the sky."
+    },
+    {
+      "id": 9,
+      "title": "Food and Drink",
+      "text": "I eat bread and drink milk every morning. I like apples and bananas."
+    },
+    {
+      "id": 10,
+      "title": "My Day",
+      "text": "I wake up at seven. I eat breakfast. I go to school. I come home at four."
+    }
+  ]
+}

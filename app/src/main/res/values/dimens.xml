@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base dimensions -->
+    <dimen name="key_height">60dp</dimen>
+    <dimen name="key_width">50dp</dimen>
+    <dimen name="key_gap">4dp</dimen>
+    <dimen name="text_size_primary">36sp</dimen>
+    <dimen name="text_size_hint">24sp</dimen>
+    <dimen name="text_size_stats">28sp</dimen>
+    <dimen name="padding_standard">24dp</dimen>
+</resources>

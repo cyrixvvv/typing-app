@@ -1,0 +1,23 @@
+// Top-level build file
+buildscript {
+    ext {
+        kotlin_version = '1.8.22'
+        appcompat_version = '1.6.1'
+        leanback_version = '1.1.0'
+        room_version = '2.5.2'
+        constraintlayout_version = '2.1.4'
+        core_ktx_version = '1.10.1'
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

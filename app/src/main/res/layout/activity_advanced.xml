@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Advanced mode layout: large text display + stats panel -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_primary"
+    android:padding="@dimen/padding_standard">
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/advanced_back"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_size_hint"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/menu_advanced"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_size_primary"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="80dp"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Stats bar: WPM, CPM, accuracy, errors, score -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/advanced_wpm"
+                android:textStyle="bold"
+                android:textColor="@color/accent"
+                android:textSize="@dimen/text_size_stats" />
+
+            <TextView
+                android:id="@+id/tv_wpm_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View android:layout_width="16dp" android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/advanced_accuracy"
+                android:textStyle="bold"
+                android:textColor="@color/color_correct"
+                android:textSize="@dimen/text_size_stats" />
+
+            <TextView
+                android:id="@+id/tv_accuracy_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View android:layout_width="16dp" android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/advanced_score"
+                android:textStyle="bold"
+                android:textColor="@color/color_gold"
+                android:textSize="@dimen/text_size_stats" />
+
+            <TextView
+                android:id="@+id/tv_score_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/pb_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:progressTint="@color/color_progress"
+        android:progressBackgroundTint="@color/bg_key"
+        android:max="100"
+        android:progress="0"
+        android:layout_margin="8dp" />
+
+    <!-- Main typing text area (large) -->
+    <TextView
+        android:id="@+id/tv_display_text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="5"
+        android:textColor="@color/text_primary"
+        android:textSize="48sp"
+        android:gravity="center"
+        android:lineSpacingExtra="16dp"
+        android:padding="24dp" />
+
+    <!-- Encouragement area -->
+    <TextView
+        android:id="@+id/tv_encourage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text=""
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="@color/color_gold"
+        android:textSize="@dimen/encourage_text_size" />
+
+    <!-- Hint: Space to start -->
+    <TextView
+        android:id="@+id/tv_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/primary_hint"
+        android:textColor="@color/text_hint"
+        android:textSize="@dimen/text_size_hint"
+        android:gravity="center"
+        android:padding="8dp" />
+
+</LinearLayout>
