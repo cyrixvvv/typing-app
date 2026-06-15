@@ -30,18 +30,44 @@ jobs:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
-      # ── 4. 编译 Debug APK ──
-      - name: Build Debug APK
+      # ── 4. 编译 Debug APK（双 ABI） ──
+      - name: Build Debug APKs
         run: ./gradlew assembleDebug
 
-      # ── 5. 运行单元测试 ──
+      # ── 5. 编译 Release APK（双 ABI + 签名） ──
+      - name: Build Release APKs
+        run: ./gradlew assembleRelease
+
+      # ── 6. 运行单元测试 ──
       - name: Run unit tests
         run: ./gradlew test
 
-      # ── 6. 上传构建产物 ──
-      - name: Upload APK
+      # ── 7. 上传 Debug APK ──
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: app-debug-armeabi-v7a
+          path: app/build/outputs/apk/debug/*-v7a.apk
+          retention-days: 7
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-arm64-v8a
+          path: app/build/outputs/apk/debug/*-v8a.apk
+          retention-days: 7
+
+      # ── 8. 上传 Release APK ──
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-armeabi-v7a
+          path: app/build/outputs/apk/release/*-v7a.apk
+          retention-days: 7
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-arm64-v8a
+          path: app/build/outputs/apk/release/*-v8a.apk
           retention-days: 7
