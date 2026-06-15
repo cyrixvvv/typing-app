@@ -31,8 +31,4 @@
     <!-- Flash animation colors -->
     <color name="flash_color1">#E74C3C</color>
     <color name="flash_color2">#FFFFFF</color>
-
-    <!-- Launcher icon colors -->
-    <color name="ic_launcher_background">#1A1A2E</color>
-    <color name="ic_launcher_foreground">#3498DB</color>
 </resources>
