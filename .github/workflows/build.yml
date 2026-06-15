@@ -53,12 +53,15 @@ jobs:
             exit $EXIT_CODE
           fi
 
+      - name: Debug APK paths
+        run: find app/build/outputs/apk/release -name "*.apk" -ls 2>/dev/null || echo "No APKs found"
+
       - name: Upload Release APK - armeabi-v7a
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: app-release-armeabi-v7a-v${{ steps.version.outputs.version_name }}
-          path: app/build/outputs/apk/release/*v7a.apk
+          path: app/build/outputs/apk/release/
           retention-days: 7
 
       - name: Upload Release APK - arm64-v8a
