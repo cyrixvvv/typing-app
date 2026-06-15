@@ -4,6 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.databinding.ActivityMainMenuBinding
+import com.honglu.typing.main.AdvancedModeActivity
+import com.honglu.typing.main.ContentSelectActivity
+import com.honglu.typing.main.PrimaryModeActivity
+import com.honglu.typing.main.SettingsActivity
 
 /**
  * Main entry activity. Shows a simple menu and dispatches to sub-activities.

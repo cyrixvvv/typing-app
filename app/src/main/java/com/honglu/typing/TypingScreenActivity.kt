@@ -1,6 +1,7 @@
 package com.honglu.typing
 
 import android.app.AlertDialog
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
@@ -145,7 +146,7 @@ abstract class TypingScreenActivity : AppCompatActivity() {
 
     private fun handlePhysicalKey(event: KeyEvent): Boolean {
         val keyCode = event.keyCode
-        val shift = event.hasModifiers(KeyEvent.META_SHIFT_LEFT or KeyEvent.META_SHIFT_RIGHT)
+        val shift = event.hasModifiers(KeyEvent.META_SHIFT_MASK)
 
         // Special keys
         when (keyCode) {
