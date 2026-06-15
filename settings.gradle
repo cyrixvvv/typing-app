@@ -14,18 +14,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "HongluTyping"
 include ':app'
-
-// 确保子项目也使用正确的仓库
-subprojects {
-    buildscript {
-        repositories {
-            google()
-            mavenCentral()
-        }
-    }
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
