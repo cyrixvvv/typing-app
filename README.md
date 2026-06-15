@@ -1,5 +1,7 @@
 # 星星打字通 (XX-Typing)
 
+[![Build](https://github.com/cyrixvvv/typing-app/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/cyrixvvv/typing-app/actions)
+
 > 面向 TV/机顶盒 的打字练习应用，支持英语指法训练与拼音中文输入训练。
 
 ## 概览
@@ -50,7 +52,7 @@ typing-app/
         │   │   └── PinyinInputEngine.kt   # 拼音引擎: 字典加载 + 候选字检索
         │   ├── main/
         │   │   ├── PrimaryModeActivity.kt     # 初级模式: 指法训练 + 拼音
-        │   │   ├── AdvancedModeActivity.kt    # 高级模式: WPM 速度测试
+        │   │   ├── AdvancedModeActivity.kt     # 高级模式: WPM 速度测试
         │   │   ├── ContentSelectActivity.kt   # 内容选择界面 (CardPresenter)
         │   │   ├── SettingsActivity.kt        # 设置: 音效/超时时间/清空数据
         │   │   └── CardPresenter.kt           # LeanBack 卡片展示器
@@ -98,11 +100,65 @@ a-z 字母键 → 拼音累加 → 匹配字典 → D-pad/数字键选字 → En
 
 ## 构建
 
+### GitHub Actions（推荐）
+
+每次推送到 `master` 分支自动构建 Release APK（armeabi-v7a + arm64-v8a）：
+
+```bash
+git push origin master
+# → GitHub Actions 自动触发构建
+# → 构建产物在 Actions Artifacts (7天有效期)
+```
+
+或手动触发：
+```bash
+# 在 GitHub Actions 页面手动运行 build.yml workflow
+```
+
+### 本地构建
+
+需要 Android SDK (compileSdk 33) + JDK 17：
+
 ```bash
 cd typing-app
-# 需要 Android SDK + JDK 8/11
 ./gradlew assembleDebug   # Debug 包
 ./gradlew assembleRelease # Release 包 (启用 ProGuard)
+```
+
+### Docker 构建
+
+在 ARM64 主机（Oracle Cloud 等）上交叉编译 x86_64 Android APK：
+
+```bash
+cd ~/docker/android-build
+
+# 启动容器
+sudo docker compose up -d
+
+# 进入容器安装 SDK（如尚未安装）
+sudo docker exec android-build bash -c "
+  export ANDROID_HOME=/opt/android-sdk
+  export ANDROID_SDK_ROOT=/opt/android-sdk
+  export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin
+  # 安装 command-line tools（首次）
+  mkdir -p \$ANDROID_HOME/cmdline-tools
+  cd /tmp && wget -q 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
+  unzip -q cmdline-tools.zip && mv cmdline-tools \$ANDROID_HOME/cmdline-tools/latest
+  # 安装平台组件
+  yes | sdkmanager --licenses > /dev/null 2>&1
+  sdkmanager --install 'platform-tools' 'platforms;android-33' 'build-tools;33.0.2'
+"
+
+# 复制代码到容器
+cp -r /path/to/typing-app/. ~/docker/android-build/workspace/
+
+# 编译
+sudo docker exec android-build bash -c "
+  export ANDROID_HOME=/opt/android-sdk
+  export ANDROID_SDK_ROOT=/opt/android-sdk
+  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+  cd /workspace && chmod +x ./gradlew && ./gradlew assembleRelease --no-daemon
+"
 ```
 
 ### 依赖清单
@@ -110,7 +166,7 @@ cd typing-app
 | 依赖 | 版本 | 用途 |
 |---|---|---|
 | kotlin | 1.8.22 | 编程语言 |
-| androidx.leanback | 1.1.0 | TV 界面 |
+| androidx.leanback | 1.0.0 | TV 界面 |
 | androidx.room | 2.5.2 | 本地数据库 |
 | androidx.constraintlayout | 2.1.4 | 布局 |
 | androidx.core-ktx | 1.10.1 | AndroidX 扩展 |
