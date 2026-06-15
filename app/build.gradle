@@ -18,8 +18,8 @@ android {
         applicationId "com.honglu.typing"
         minSdk 22
         targetSdk 33
-        versionCode versionCode
-        versionName versionName
+        versionCode = versionCode as Integer
+        versionName = versionName as String
 
         vectorDrawables.useSupportLibrary = true
 
