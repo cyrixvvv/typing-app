@@ -4,9 +4,9 @@ plugins {
     id 'kotlin-kapt'
 }
 
-// 从 gradle.properties 读取版本管理
+// 从 gradle.properties 读取版本管理（使用 rootProject 绝对路径）
 def versionProps = new Properties()
-file("gradle.properties").withInputStream { versionProps.load(it) }
+file("${rootProject.rootDir.absolutePath}/gradle.properties").withInputStream { versionProps.load(it) }
 def versionCode = versionProps["VERSION_CODE"].toInteger()
 def versionName = versionProps["VERSION_NAME"]
 
