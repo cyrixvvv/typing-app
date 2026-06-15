@@ -30,20 +30,15 @@ jobs:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
-      # ── 4. 生成 Gradle Wrapper（项目没有 gradlew） ──
-      #    AGP 7.4.2 兼容 Gradle 7.5 ~ 8.5，选用 8.4
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.4
-
-      # ── 5. 编译 Debug APK ──
+      # ── 4. 编译 Debug APK ──
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      # ── 6. 运行单元测试 ──
+      # ── 5. 运行单元测试 ──
       - name: Run unit tests
         run: ./gradlew test
 
-      # ── 7. 上传构建产物 ──
+      # ── 6. 上传构建产物 ──
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
