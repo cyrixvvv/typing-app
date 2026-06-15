@@ -104,6 +104,17 @@
             android:textSize="@dimen/text_size_stats" />
     </LinearLayout>
 
+    <!-- Hint: Space to start -->
+    <TextView
+        android:id="@+id/tv_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/primary_hint"
+        android:textColor="@color/text_hint"
+        android:textSize="@dimen/text_size_hint"
+        android:gravity="center"
+        android:padding="8dp" />
+
     <!-- Divider -->
     <View
         android:layout_width="match_parent"
