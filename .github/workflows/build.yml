@@ -29,6 +29,9 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write   # 必须：创建 GitHub Release 需要 contents:write
+
 jobs:
   build:
     runs-on: ubuntu-latest
