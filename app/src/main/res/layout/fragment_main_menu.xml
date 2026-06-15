@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Main menu layout for LeanBack -->
-<!-- BrowseFragment 必须包裹在 ViewGroup 中，ViewBinding 不支持 fragment 标签作为根节点 -->
-<FrameLayout
+<androidx.leanback.app.BrowseFragment
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/browse_fragment_container"
+    android:id="@+id/browse_fragment"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <androidx.leanback.app.BrowseFragment
-        android:id="@+id/browse_fragment"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-</FrameLayout>
+    android:layout_height="match_parent" />
