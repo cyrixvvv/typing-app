@@ -4,6 +4,12 @@ plugins {
     id 'kotlin-kapt'
 }
 
+// 从 gradle.properties 读取版本管理
+def versionProps = new Properties()
+file("gradle.properties").withInputStream { versionProps.load(it) }
+def versionCode = versionProps["VERSION_CODE"].toInteger()
+def versionName = versionProps["VERSION_NAME"]
+
 android {
     namespace 'com.honglu.typing'
     compileSdk 33
@@ -12,8 +18,8 @@ android {
         applicationId "com.honglu.typing"
         minSdk 22
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCode
+        versionName versionName
 
         vectorDrawables.useSupportLibrary = true
 

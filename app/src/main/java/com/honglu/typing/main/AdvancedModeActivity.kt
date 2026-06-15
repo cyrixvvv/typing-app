@@ -11,6 +11,7 @@ import com.honglu.typing.engine.TypingEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Timer
+import java.util.TimerTask
 
 /**
  * Advanced mode: WPM/CPM test with large text display and statistics.
@@ -93,19 +94,21 @@ class AdvancedModeActivity : TypingScreenActivity() {
 
     private fun startProgressUpdate() {
         updateTimer = Timer("progress_update", false)
-        updateTimer?.scheduleAtFixedRate(0L, 500L) {
-            runOnUiThread(Runnable {
-                if (engine.isRunning && !engine.isComplete()) {
-                    binding.tvWpmValue.text = String.format("%.0f", engine.calculateWpm())
-                    binding.tvAccuracyValue.text = String.format("%.0f%%", engine.calculateAccuracy())
+        updateTimer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                runOnUiThread {
+                    if (engine.isRunning && !engine.isComplete()) {
+                        binding.tvWpmValue.text = String.format("%.0f", engine.calculateWpm())
+                        binding.tvAccuracyValue.text = String.format("%.0f%%", engine.calculateAccuracy())
 
-                    val progress = (engine.getProgress() * 100).toInt()
-                    binding.pbProgress.progress = progress
+                        val progress = (engine.getProgress() * 100).toInt()
+                        binding.pbProgress.progress = progress
 
-                    updateEncouragement()
+                        updateEncouragement()
+                    }
                 }
-            })
-        }
+            }
+        }, 0L, 500L)
     }
 
     private fun updateEncouragement() {
