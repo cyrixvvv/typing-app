@@ -1,6 +1,6 @@
 # 星星打字通 (XX-Typing)
 
-[![Build](https://github.com/cyrixvvv/typing-app/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/cyrixvvv/typing-app/actions)
+[![Build](https://github.com/cyrixvvv/typing-app/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/cyrixvvv/typing-app/actions/workflows)
 
 > 面向 TV/机顶盒 的打字练习应用，支持英语指法训练与拼音中文输入训练。
 
@@ -100,19 +100,23 @@ a-z 字母键 → 拼音累加 → 匹配字典 → D-pad/数字键选字 → En
 
 ## 构建
 
-### GitHub Actions（推荐）
+### GitHub Actions（唯一推荐方式）
 
-每次推送到 `master` 分支自动构建 Release APK（armeabi-v7a + arm64-v8a）：
+**自动构建：** 每次推送到 `master` 分支自动构建 Release APK（armeabi-v7a + arm64-v8a）
 
-```bash
-git push origin master
-# → GitHub Actions 自动触发构建
-# → 构建产物在 Actions Artifacts (7天有效期)
+**手动触发：** GitHub Actions 页面 → `build.yml` → `Run workflow`
+
+**无缓存强制重建：** 触发时选择 `Clear artifacts and caches` 或在 workflow 中使用 `--no-build-cache --rerun-tasks`
+
+#### 下载 APK
+
+构建产物在 **Actions → Artifacts**，每个 APK 保留 7 天。
+
 ```
-
-或手动触发：
-```bash
-# 在 GitHub Actions 页面手动运行 build.yml workflow
+https://github.com/cyrixvvv/typing-app/actions
+→ 点击最新构建
+→ 底部 Artifacts
+→ 下载 app-release-armeabi-v7a.apk 或 app-release-arm64-v8a.apk
 ```
 
 ### 本地构建
@@ -123,42 +127,6 @@ git push origin master
 cd typing-app
 ./gradlew assembleDebug   # Debug 包
 ./gradlew assembleRelease # Release 包 (启用 ProGuard)
-```
-
-### Docker 构建
-
-在 ARM64 主机（Oracle Cloud 等）上交叉编译 x86_64 Android APK：
-
-```bash
-cd ~/docker/android-build
-
-# 启动容器
-sudo docker compose up -d
-
-# 进入容器安装 SDK（如尚未安装）
-sudo docker exec android-build bash -c "
-  export ANDROID_HOME=/opt/android-sdk
-  export ANDROID_SDK_ROOT=/opt/android-sdk
-  export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin
-  # 安装 command-line tools（首次）
-  mkdir -p \$ANDROID_HOME/cmdline-tools
-  cd /tmp && wget -q 'https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip'
-  unzip -q cmdline-tools.zip && mv cmdline-tools \$ANDROID_HOME/cmdline-tools/latest
-  # 安装平台组件
-  yes | sdkmanager --licenses > /dev/null 2>&1
-  sdkmanager --install 'platform-tools' 'platforms;android-33' 'build-tools;33.0.2'
-"
-
-# 复制代码到容器
-cp -r /path/to/typing-app/. ~/docker/android-build/workspace/
-
-# 编译
-sudo docker exec android-build bash -c "
-  export ANDROID_HOME=/opt/android-sdk
-  export ANDROID_SDK_ROOT=/opt/android-sdk
-  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-  cd /workspace && chmod +x ./gradlew && ./gradlew assembleRelease --no-daemon
-"
 ```
 
 ### 依赖清单
@@ -181,6 +149,168 @@ sudo docker exec android-build bash -c "
 | sound_enabled | true | 按键音效开关 |
 
 存储位置：`typing_config` SharedPreferences
+
+---
+
+## GitHub Actions 构建实战手册
+
+### 常用操作
+
+#### 查询最新构建状态
+
+```bash
+# 查看最近 5 次构建
+gh run list --workflow=build.yml -L 5
+
+# 查看实时日志（跟随输出）
+gh run watch <run-id>
+
+# 查看具体构建的通过/失败状态
+gh run view <run-id> --log-failed
+```
+
+#### 下载构建产物
+
+```bash
+# 列出最新构建的 artifact
+gh run view <run-id> --json artifacts
+
+# 下载所有 artifacts
+gh run download <run-id>
+
+# 下载指定 artifact
+gh run download <run-id> -n app-release-arm64-v8a
+```
+
+#### 触发重新构建
+
+```bash
+# 通过 gh CLI 触发 workflow_dispatch
+gh workflow run build.yml
+
+# 触发并等待结果
+gh workflow run build.yml --ref master && gh run watch
+```
+
+#### 无缓存强制重建
+
+当代码修改已推送但构建仍报旧的编译错误（Gradle 缓存污染）时：
+
+**方法 1：Workflow 内置清理（当前配置）**
+```bash
+# workflow 中已配置: ./gradlew clean + 清除 build-cache + touch 所有源文件
+# 推送后自动触发时会执行清理步骤
+```
+
+**方法 2：通过 GitHub Web 界面**
+```
+Actions → build.yml → 运行记录 → 右上角 "Clear cache" → 重新 Run workflow
+```
+
+**方法 3：通过 API 清除缓存**
+```bash
+# 查找所有 Gradle 缓存
+gh api repos/cyrixvvv/typing-app/actions/caches \
+  --method GET --jq '.actions_caches[] | select(.key | contains("gradle")) | {id, key}'
+
+# 删除指定缓存
+gh api repos/cyrixvvv/typing-app/actions/caches/<cache-id> --method DELETE
+```
+
+#### 查询构建日志
+
+```bash
+# 查看构建失败的具体步骤
+gh run view <run-id> --log-failed | head -100
+
+# 下载完整日志
+gh api repos/cyrixvvv/typing-app/actions/runs/<run-id>/logs > logs.zip
+
+# 查看特定 step 的日志
+gh api repos/cyrixvvv/typing-app/actions/runs/<run-id>/jobs --jq '.jobs[0].steps'
+```
+
+### 调试编译错误
+
+#### 典型编译错误与修复
+
+**1. 缺失 import**
+```
+Unresolved reference: AdvancedModeActivity
+```
+→ 在文件顶部添加 `import com.honglu.typing.main.AdvancedModeActivity`
+
+**2. KeyEvent API 兼容性**
+```
+Unresolved reference: META_SHIFT_LEFT
+```
+→ `KeyEvent.META_SHIFT_LEFT` 在旧 API 不可用，改用 `KeyEvent.META_SHIFT_MASK`
+
+**3. 私有 setter（与 Java 互操作）**
+```
+Visibility modifier expected
+```
+→ `var score: Int = 0 private set` 改为 `internal set`
+
+**4. lambda 返回类型推断**
+```
+Type mismatch: inferred type is Boolean, expected Unit
+```
+→ `runOnUiThread { ... }` 中的 lambda 不能依赖最后一行类型，显式用 `runOnUiThread(Runnable { ... })`
+
+**5. 跨模块访问权限**
+```
+Var cannot be accessed from subclass in different package
+```
+→ `internal` 或 `protected open` 修饰属性
+
+**6. suspend 函数在非协程上下文调用**
+```
+Suspend function 'calculateScore' should be called only within a coroutine
+```
+→ 用 `lifecycleScope.launch { scoreManager.calculateScore(...) }` 包裹
+
+**7. Gradle 缓存污染（最常见！）**
+```
+Unresolved reference: source  (但 DeviceUtils.kt 中明明有 device.source())
+```
+→ 这是缓存残留，不是源码问题。执行以下之一：
+   - 推送 `--allow-empty` 触发全新构建
+   - 清除 GitHub Actions 缓存
+   - Workflow 中 `./gradlew clean` + `rm -rf .gradle`
+
+#### 调试流程
+
+```
+1. gh run view <run-id> --log-failed    # 找到第一个错误
+2. 定位错误文件和行号
+3. 本地修改并 push
+4. 观察新构建（无缓存模式下无需清除缓存）
+5. 重复直到通过
+```
+
+### workflow.yml 关键配置
+
+```yaml
+- name: Clear stale build artifacts        # 防止缓存污染
+  run: |
+    ./gradlew clean || true
+    rm -rf ~/.gradle/caches/build-cache-* || true
+    find . -name "*.kt" -exec touch {} \;  # 强制重新编译所有源文件
+
+- name: Build Release APKs                 # --no-build-cache 禁用 Gradle 缓存
+  run: ./gradlew assembleRelease --no-build-cache --rerun-tasks
+```
+
+### 坑记录
+
+| 坑 | 原因 | 解法 |
+|---|---|---|
+| 推送后构建仍报旧错误 | Gradle build-cache 缓存了旧的 .class 文件 | workflow 中 `./gradlew clean` + `--no-build-cache` |
+| ARM64 主机无法运行 aapt2 | aapt2 是 x86_64 二进制，QEMU 模拟性能极差 | 不在本地编译，强制用 GitHub Actions x86_64 原生构建 |
+| 子代理修复的源码与远程不一致 | 子代理修改本地后未及时 push | 每轮修复后立即 push，验证远程再继续 |
+| Docker buildx QEMU 编译 40 分钟未完成 | ARM → x86 交叉编译，每步都需 QEMU 模拟 | 放弃 Docker 方案，统一走 GitHub Actions |
+| workflow_dispatch 未出现在 Actions 页面 | trigger 配置在 `on` 下但未在 workflow_dispatch 下正确声明 | 当前配置已修复，`workflow_dispatch` 独立声明 |
 
 ## 许可
 
