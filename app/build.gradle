@@ -34,13 +34,24 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("RELEASE_KEYSTORE_FILE") ?: rootProject.file("release.keystore"))
+            storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "android"
+            keyAlias     System.getenv("RELEASE_KEY_ALIAS") ?: "typing-release"
+            keyPassword  System.getenv("RELEASE_KEY_PASSWORD") ?: "android"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.release   // 使用同一套签名，方便测试
         }
     }
 

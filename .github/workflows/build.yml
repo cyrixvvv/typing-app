@@ -1,26 +1,18 @@
 name: Build Release APK
 
 on:
-  # ============================================================
-  # 【已注释】push 触发 — 需要恢复时手动取消注释以下 3 行
-  # ============================================================
-  # push:
-  #   branches: [master]
-  # ============================================================
-
-  # 监控 gradle.properties 变动 → 推送该文件时自动触发构建并发布 Release
   push:
     branches: [master]
     paths:
       - 'gradle.properties'
       - 'app/build.gradle'
       - '.github/workflows/build.yml'
+      - 'app/src/**'
 
-  # 手动触发（可指定版本参数）
   workflow_dispatch:
     inputs:
       skip_release:
-        description: '跳过 GitHub Release 创建（仅构建）'
+        description: '跳过 Release 创建（仅 build+artifact）'
         required: false
         default: 'false'
         type: boolean
@@ -30,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write   # 必须：创建 GitHub Release 需要 contents:write
+  contents: write
 
 jobs:
   build:
@@ -57,11 +49,26 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Set up Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
+
+      - name: Generate release keystore
+        id: keystore
+        uses: c恄信/android-sign-file@v1
+        with:
+          alias: typing-release
+          key_password: Ty2026Pass!!
+          keystore_password: Ty2026Pass!!
+
+      - name: Set signing env for Gradle
+        run: |
+          echo "RELEASE_KEYSTORE_FILE=${{ steps.keystore.outputs.key_store_path }}" >> $GITHUB_ENV
+          echo "RELEASE_KEYSTORE_PASSWORD=${{ steps.keystore.outputs.keystore_password }}" >> $GITHUB_ENV
+          echo "RELEASE_KEY_ALIAS=${{ steps.keystore.outputs.alias }}" >> $GITHUB_ENV
+          echo "RELEASE_KEY_PASSWORD=${{ steps.keystore.outputs.key_password }}" >> $GITHUB_ENV
 
       - name: Clear stale build artifacts
         run: |
@@ -70,52 +77,65 @@ jobs:
           rm -rf .gradle 2>/dev/null || true
           find . \( -name "*.kt" -o -name "*.xml" -o -name "*.gradle" -o -name "*.java" \) -exec touch {} \;
 
-      - name: Build Release APKs (armeabi-v7a + arm64-v8a)
+      - name: Build Release APKs
         id: build
         run: |
           EXIT_CODE=0
           ./gradlew assembleRelease --no-build-cache --rerun-tasks 2>&1 | tee /tmp/build_output.txt || EXIT_CODE=$?
-          echo "--- Last 30 build output lines ---"
+          echo "--- Build tail ---"
           tail -30 /tmp/build_output.txt
           if [ $EXIT_CODE -ne 0 ]; then
             echo "::error::Build failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
           fi
 
-      - name: Find built APKs
+      - name: Find and list built APKs
         id: apks
         run: |
           echo "=== Available APKs ==="
-          find app/build/outputs/apk -name "*.apk" -type f
-          APK_V7A=$(find app/build/outputs/apk -name "*-v7a-*.apk" | head -1)
-          APK_V8A=$(find app/build/outputs/apk -name "*-v8a-*.apk" | head -1)
-          echo "apk_v7a=$APK_V7A" >> $GITHUB_OUTPUT
-          echo "apk_v8a=$APK_V8A" >> $GITHUB_OUTPUT
+          find app/build/outputs/apk -name "*.apk" -type f -exec ls -lh {} \;
+          APK_V7A="app/build/outputs/apk/release/app-armeabi-v7a-release.apk"
+          APK_V8A="app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          if [ -f "$APK_V7A" ]; then
+            echo "apk_v7a=$APK_V7A" >> $GITHUB_OUTPUT
+            echo "::notice::Found v7a: $APK_V7A"
+          else
+            FOUND=$(find app/build/outputs/apk -name "*armeabi-v7a*.apk" | head -1)
+            echo "apk_v7a=$FOUND" >> $GITHUB_OUTPUT
+          fi
+          if [ -f "$APK_V8A" ]; then
+            echo "apk_v8a=$APK_V8A" >> $GITHUB_OUTPUT
+            echo "::notice::Found v8a: $APK_V8A"
+          else
+            FOUND=$(find app/build/outputs/apk -name "*arm64-v8a*.apk" | head -1)
+            echo "apk_v8a=$FOUND" >> $GITHUB_OUTPUT
+          fi
 
-      # ============================================================
-      # 【跳过 Release 创建时的制品留存】
-      # ============================================================
-      - name: Upload Release APK (armeabi-v7a) — artifacts fallback
+      - name: Upload artifacts (armeabi-v7a)
         if: github.event.inputs.skip_release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-armeabi-v7a-v${{ steps.version.outputs.version_name }}
+          name: app-armeabi-v7a-${{ steps.version.outputs.version_name }}
           path: ${{ steps.apks.outputs.apk_v7a }}
-          retention-days: 7
+          retention-days: 30
 
-      - name: Upload Release APK (arm64-v8a) — artifacts fallback
+      - name: Upload artifacts (arm64-v8a)
         if: github.event.inputs.skip_release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-arm64-v8a-v${{ steps.version.outputs.version_name }}
+          name: app-arm64-v8a-${{ steps.version.outputs.version_name }}
           path: ${{ steps.apks.outputs.apk_v8a }}
-          retention-days: 7
+          retention-days: 30
 
-      # ============================================================
-      # 【自动发布到 GitHub Release】
-      # 触发条件：gradle.properties 推送 或 workflow_dispatch（未勾选 skip_release）
-      # ============================================================
-      - name: Create GitHub Release
+      - name: Delete old release
+        if: github.event.inputs.skip_release != 'true'
+        run: |
+          TAG="${{ steps.version.outputs.tag_name }}"
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          git push --delete origin "$TAG" 2>/dev/null || true
+          echo "Cleaned existing: $TAG"
+
+      - name: Create Release + Upload APKs
         if: github.event.inputs.skip_release != 'true'
         id: release
         uses: softprops/action-gh-release@v2
@@ -124,6 +144,7 @@ jobs:
           name: Release ${{ steps.version.outputs.version_name }}
           draft: false
           prerelease: false
+          replace: true
           generate_release_notes: true
           files: |
             ${{ steps.apks.outputs.apk_v7a }}
@@ -135,18 +156,18 @@ jobs:
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Version | **${{ steps.version.outputs.version_name }}** (code `${{ steps.version.outputs.version_code }}`) |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | **${{ steps.version.outputs.version_name }}** (code ${{ steps.version.outputs.version_code }}) |" >> $GITHUB_STEP_SUMMARY
           echo "| Tag | \`${{ steps.version.outputs.tag_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| APK (armeabi-v7a) | \`${{ steps.apks.outputs.apk_v7a }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| APK (arm64-v8a) | \`${{ steps.apks.outputs.apk_v8a }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| armeabi-v7a | \`${{ steps.apks.outputs.apk_v7a }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| arm64-v8a | \`${{ steps.apks.outputs.apk_v8a }}\` |" >> $GITHUB_STEP_SUMMARY
           if [ "${{ github.event.inputs.skip_release }}" != "true" ]; then
             echo "| Release | https://github.com/${{ github.repository }}/releases/${{ steps.version.outputs.tag_name }} |" >> $GITHUB_STEP_SUMMARY
           fi
           if [ -f "${{ steps.apks.outputs.apk_v7a }}" ] && [ -f "${{ steps.apks.outputs.apk_v8a }}" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**✅ BUILD & RELEASE SUCCESS**" >> $GITHUB_STEP_SUMMARY
+            echo "**BUILD & RELEASE SUCCESS**" >> $GITHUB_STEP_SUMMARY
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**❌ BUILD FAILED** — check logs above" >> $GITHUB_STEP_SUMMARY
+            echo "**BUILD FAILED**" >> $GITHUB_STEP_SUMMARY
           fi
