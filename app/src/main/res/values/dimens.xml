@@ -8,4 +8,5 @@
     <dimen name="text_size_hint">24sp</dimen>
     <dimen name="text_size_stats">28sp</dimen>
     <dimen name="padding_standard">24dp</dimen>
+    <dimen name="encourage_text_size">28sp</dimen>
 </resources>
