@@ -56,12 +56,6 @@ android {
     buildFeatures {
         viewBinding = true
     }
-
-    // fragment_main_menu.xml 包含 <fragment> 标签，ViewBinding 不支持，
-    // 排除以避免生成不兼容的 FragmentMainMenuBinding
-    viewBinding {
-        exclude += [ 'fragment_main_menu.xml' ]
-    }
 }
 
 dependencies {
