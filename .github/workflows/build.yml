@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       skip_release:
-        description: '跳过 Release 创建（仅 build+artifact）'
+        description: 'skip release (build+artifact only)'
         required: false
         default: 'false'
         type: boolean
@@ -55,20 +55,50 @@ jobs:
           cmdline-tools-version: '12.0'
           packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
-      - name: Generate release keystore
+      - name: Generate keystore via Python
         id: keystore
-        uses: c恄信/android-sign-file@v1
-        with:
-          alias: typing-release
-          key_password: Ty2026Pass!!
-          keystore_password: Ty2026Pass!!
-
-      - name: Set signing env for Gradle
         run: |
-          echo "RELEASE_KEYSTORE_FILE=${{ steps.keystore.outputs.key_store_path }}" >> $GITHUB_ENV
-          echo "RELEASE_KEYSTORE_PASSWORD=${{ steps.keystore.outputs.keystore_password }}" >> $GITHUB_ENV
-          echo "RELEASE_KEY_ALIAS=${{ steps.keystore.outputs.alias }}" >> $GITHUB_ENV
-          echo "RELEASE_KEY_PASSWORD=${{ steps.keystore.outputs.key_password }}" >> $GITHUB_ENV
+          python3 -c "
+          from subprocess import run
+          import base64, os, tempfile
+          # Generate a self-signed certificate + keystore using keytool (JDK bundled)
+          # Use a temp dir for GNUPGHOME workaround - but we use keytool not GPG
+          with tempfile.TemporaryDirectory() as tmpdir:
+              ks = tmpdir + '/release.keystore'
+              # Generate keypair + keystore in one step using keytool
+              r = run([
+                  'keytool', '-genkeypair',
+                  '-keystore', ks,
+                  '-alias', 'typing-release',
+                  '-keyalg', 'RSA', '-keysize', '2048',
+                  '-validity', '10000',
+                  '-storepass', 'Ty2026Pass!!',
+                  '-keypass', 'Ty2026Pass!!',
+                  '-dname', 'CN=typing-release, OU=dev, O=honglu, L=sz, ST=gd, C=cn',
+                  '-v'
+              ], capture_output=True, text=True)
+              if r.returncode != 0:
+                  print('keytool stdout:', r.stdout)
+                  print('keytool stderr:', r.stderr, file=__import__('sys').stderr)
+                  __import__('sys').exit(1)
+              with open(ks, 'rb') as f:
+                  b64 = base64.b64encode(f.read()).decode()
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('keystore_b64=' + b64 + '\n')
+              print('Keystore generated successfully')
+          "
+
+      - name: Write keystore to disk
+        run: |
+          KEYSTORE_B64="${{ steps.keystore.outputs.keystore_b64 }}"
+          echo "KEystore size: ${#KEYSTORE_B64} chars"
+          mkdir -p /tmp/keystore
+          echo "$KEYSTORE_B64" | base64 -d > /tmp/keystore/release.keystore
+          echo "RELEASE_KEYSTORE_FILE=/tmp/keystore/release.keystore" >> $GITHUB_ENV
+          echo "RELEASE_KEYSTORE_PASSWORD=Ty2026Pass!!" >> $GITHUB_ENV
+          echo "RELEASE_KEY_ALIAS=typing-release" >> $GITHUB_ENV
+          echo "RELEASE_KEY_PASSWORD=Ty2026Pass!!" >> $GITHUB_ENV
+          echo "::notice::Keystore written to /tmp/keystore/release.keystore"
 
       - name: Clear stale build artifacts
         run: |
@@ -82,36 +112,23 @@ jobs:
         run: |
           EXIT_CODE=0
           ./gradlew assembleRelease --no-build-cache --rerun-tasks 2>&1 | tee /tmp/build_output.txt || EXIT_CODE=$?
-          echo "--- Build tail ---"
           tail -30 /tmp/build_output.txt
           if [ $EXIT_CODE -ne 0 ]; then
             echo "::error::Build failed with exit code $EXIT_CODE"
             exit $EXIT_CODE
           fi
 
-      - name: Find and list built APKs
+      - name: Find built APKs
         id: apks
         run: |
-          echo "=== Available APKs ==="
-          find app/build/outputs/apk -name "*.apk" -type f -exec ls -lh {} \;
-          APK_V7A="app/build/outputs/apk/release/app-armeabi-v7a-release.apk"
-          APK_V8A="app/build/outputs/apk/release/app-arm64-v8a-release.apk"
-          if [ -f "$APK_V7A" ]; then
-            echo "apk_v7a=$APK_V7A" >> $GITHUB_OUTPUT
-            echo "::notice::Found v7a: $APK_V7A"
-          else
-            FOUND=$(find app/build/outputs/apk -name "*armeabi-v7a*.apk" | head -1)
-            echo "apk_v7a=$FOUND" >> $GITHUB_OUTPUT
-          fi
-          if [ -f "$APK_V8A" ]; then
-            echo "apk_v8a=$APK_V8A" >> $GITHUB_OUTPUT
-            echo "::notice::Found v8a: $APK_V8A"
-          else
-            FOUND=$(find app/build/outputs/apk -name "*arm64-v8a*.apk" | head -1)
-            echo "apk_v8a=$FOUND" >> $GITHUB_OUTPUT
-          fi
+          echo "=== APKs ==="
+          find app/build/outputs/apk -name "*.apk" -type f | while read f; do
+            echo "  $f ($(du -h "$f" | cut -f1))"
+          done
+          echo "apk_v7a=app/build/outputs/apk/release/app-armeabi-v7a-release.apk" >> $GITHUB_OUTPUT
+          echo "apk_v8a=app/build/outputs/apk/release/app-arm64-v8a-release.apk" >> $GITHUB_OUTPUT
 
-      - name: Upload artifacts (armeabi-v7a)
+      - name: Upload artifacts
         if: github.event.inputs.skip_release == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -133,9 +150,9 @@ jobs:
           TAG="${{ steps.version.outputs.tag_name }}"
           gh release delete "$TAG" --yes 2>/dev/null || true
           git push --delete origin "$TAG" 2>/dev/null || true
-          echo "Cleaned existing: $TAG"
+          echo "Cleaned: $TAG"
 
-      - name: Create Release + Upload APKs
+      - name: Create Release
         if: github.event.inputs.skip_release != 'true'
         id: release
         uses: softprops/action-gh-release@v2
@@ -150,24 +167,12 @@ jobs:
             ${{ steps.apks.outputs.apk_v7a }}
             ${{ steps.apks.outputs.apk_v8a }}
 
-      - name: Build Summary
+      - name: Summary
         if: always()
         run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Version | **${{ steps.version.outputs.version_name }}** (code ${{ steps.version.outputs.version_code }}) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tag | \`${{ steps.version.outputs.tag_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| armeabi-v7a | \`${{ steps.apks.outputs.apk_v7a }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| arm64-v8a | \`${{ steps.apks.outputs.apk_v8a }}\` |" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event.inputs.skip_release }}" != "true" ]; then
-            echo "| Release | https://github.com/${{ github.repository }}/releases/${{ steps.version.outputs.tag_name }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [ -f "${{ steps.apks.outputs.apk_v7a }}" ] && [ -f "${{ steps.apks.outputs.apk_v8a }}" ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**BUILD & RELEASE SUCCESS**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**BUILD FAILED**" >> $GITHUB_STEP_SUMMARY
+          echo "## Build ${{ steps.version.outputs.version_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "APK: ${{ steps.apks.outputs.apk_v7a }}" >> $GITHUB_STEP_SUMMARY
+          echo "APK: ${{ steps.apks.outputs.apk_v8a }}" >> $GITHUB_STEP_SUMMARY
+          if [ -f "${{ steps.apks.outputs.apk_v7a }}" ]; then
+            echo "**SUCCESS**" >> $GITHUB_STEP_SUMMARY
           fi
