@@ -159,7 +159,7 @@ class KeyboardView @JvmOverloads constructor(
         style = Paint.Style.FILL
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
-        isBold = true
+        isFakeBoldText = true
     }
 
     // Layout calculations

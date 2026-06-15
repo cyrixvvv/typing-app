@@ -9,18 +9,19 @@ object DeviceUtils {
      * Check if the event comes from a physical keyboard (OTG).
      */
     fun isPhysicalKeyboard(event: android.view.KeyEvent): Boolean {
-        val source = event.device?.source ?: return false
+        val device = event.device ?: return false
+        val source = device.source
         return (source and android.view.InputDevice.SOURCE_KEYBOARD) != 0 &&
-               !event.device?.isVirtual ?: false
+               !device.isVirtual
     }
 
     /**
      * Check if the event comes from a TV remote (D-pad).
      */
     fun isRemoteControl(event: android.view.KeyEvent): Boolean {
-        val source = event.device?.source ?: return false
+        val device = event.device ?: return false
         // D-pad events from leanback often have no device or are marked as gamepad
-        return (source and android.view.InputDevice.SOURCE_DPAD) != 0
+        return (device.source and android.view.InputDevice.SOURCE_DPAD) != 0
     }
 
     /**

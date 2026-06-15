@@ -3,6 +3,8 @@ package com.honglu.typing.engine
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.room.*
+import com.honglu.typing.data.AppDatabase
+import com.honglu.typing.data.RecordEntity
 
 /**
  * Score manager: tracks total score, streak, and persists records to Room DB.

@@ -11,9 +11,9 @@ class TypingEngine {
     enum class Mode { PRIMARY, ADVANCED }
 
     var currentText: String = ""
-        private set
+        internal set
     var currentIndex: Int = 0
-        private set
+        internal set
     var startTime: Long = 0
         private set
     var isRunning: Boolean = false
@@ -23,9 +23,9 @@ class TypingEngine {
 
     // Stats
     var totalKeystrokes = 0
-        private set
+        internal set
     var correctKeystrokes = 0
-        private set
+        internal set
     var wrongKeystrokes = 0
         private set
     var consecutiveCorrect = 0

@@ -2,6 +2,7 @@ package com.honglu.typing.main
 
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
+import com.honglu.typing.R
 import com.honglu.typing.TypingScreenActivity
 import com.honglu.typing.data.ContentRepository
 import com.honglu.typing.databinding.ActivityAdvancedBinding

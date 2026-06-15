@@ -43,7 +43,7 @@ class ContentSelectActivity : BrowseFragment() {
 
         adapter = mainAdapter
 
-        onItemClickedListener = androidx.leanback.widget.OnItemViewClickedListener { item, _, rowPosition, _ ->
+        onItemViewClickedListener = androidx.leanback.widget.OnItemViewClickedListener { item, _, rowPosition, _ ->
             item as? ContentItem ?: return@OnItemViewClickedListener
             // Navigate to typing mode with selected content
             val intent = Intent(this, PrimaryModeActivity::class.java)

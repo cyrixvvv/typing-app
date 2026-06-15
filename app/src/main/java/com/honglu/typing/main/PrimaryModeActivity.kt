@@ -171,9 +171,9 @@ class PrimaryModeActivity : TypingScreenActivity() {
             // Insert the chosen Chinese character at current position
             val text = engine.currentText.toMutableList()
             if (engine.currentIndex < text.size) {
-                text[engine.currentIndex] = chosenChar
+                text[engine.currentIndex] = chosenChar[0]
             } else {
-                text.add(chosenChar)
+                text.add(chosenChar[0])
             }
             engine.currentText = text.joinToString("")
             engine.currentIndex++
