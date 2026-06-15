@@ -32,15 +32,12 @@ jobs:
           limit-access-to-users: cyrixvvv
 
       # ── 4. 安装 Android SDK ──
-      #    packages 用数组格式，每个包一行
+      #    packages 用字符串格式，每个包用空格分隔（action 内部会 split）
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: '9.0'
-          packages:
-            - platforms;android-33
-            - build-tools;33.0.2
-            - platform-tools
+          packages: "platforms;android-33 build-tools;33.0.2 platform-tools"
 
       # ── 5. 生成 Gradle Wrapper（项目没有 gradlew） ──
       - name: Generate Gradle Wrapper
