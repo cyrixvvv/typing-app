@@ -108,15 +108,24 @@ a-z 字母键 → 拼音累加 → 匹配字典 → D-pad/数字键选字 → En
 
 **无缓存强制重建：** 触发时选择 `Clear artifacts and caches` 或在 workflow 中使用 `--no-build-cache --rerun-tasks`
 
+> ⚠️ 当前 APK 为 **unsigned**（未签名），仅供内部测试使用。
+
 #### 下载 APK
 
 构建产物在 **Actions → Artifacts**，每个 APK 保留 7 天。
 
+直接下载（替换 run_id 和 artifact_id）：
+```
+https://github.com/cyrixvvv/typing-app/actions/runs/<run_id>/artifacts/<artifact_id>
+```
+
+或在 GitHub Actions 页面：
 ```
 https://github.com/cyrixvvv/typing-app/actions
 → 点击最新构建
 → 底部 Artifacts
-→ 下载 app-release-armeabi-v7a.apk 或 app-release-arm64-v8a.apk
+→ 下载 app-release-armeabi-v7a-v<X.Y.Z>.zip 或 app-release-arm64-v8a-v<X.Y.Z>.zip
+→ 解压得到 APK 文件
 ```
 
 ### 本地构建
@@ -126,10 +135,21 @@ https://github.com/cyrixvvv/typing-app/actions
 ```bash
 cd typing-app
 ./gradlew assembleDebug   # Debug 包
-./gradlew assembleRelease # Release 包 (启用 ProGuard)
+./gradlew assembleRelease # Release 包 (启用 ProGuard，unsigned）
+
+### 版本管理
+
+版本号由 `gradle.properties` 手动控制，**不自动递增**：
+
+```bash
+# 修改版本号
+vim gradle.properties
+# VERSION_CODE=1
+# VERSION_NAME=1.0.0
+git add gradle.properties && git commit -m "chore: bump version to X.Y.Z" && git push
 ```
 
-### 依赖清单
+更新 `VERSION_CODE`（必须为整数）和 `VERSION_NAME`（语义化版本）后，推送即触发新构建。
 
 | 依赖 | 版本 | 用途 |
 |---|---|---|
