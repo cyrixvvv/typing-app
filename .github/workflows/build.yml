@@ -40,7 +40,7 @@ jobs:
           ./gradlew clean || true
           rm -rf ~/.gradle/caches/build-cache-* || true
           rm -rf .gradle 2>/dev/null || true
-          find . -name "*.kt" -exec touch {} \; -o -name "*.xml" -exec touch {} \; -o -name "*.gradle" -exec touch {} \;
+          find . \( -name "*.kt" -o -name "*.xml" -o -name "*.gradle" -o -name "*.java" \) -exec touch {} \;
 
       - name: Build Release APKs (armeabi-v7a + arm64-v8a)
         run: |
