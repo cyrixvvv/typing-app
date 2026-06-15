@@ -125,8 +125,6 @@ jobs:
           files: |
             ${{ steps.apks.outputs.apk_v7a }}
             ${{ steps.apks.outputs.apk_v8a }}
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Summary
         if: always()
