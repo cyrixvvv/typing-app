@@ -1,58 +1,72 @@
 package com.honglu.typing.main
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
+import androidx.fragment.app.FragmentActivity
 import androidx.leanback.app.BrowseFragment
 import androidx.leanback.widget.ArrayObjectAdapter
+import androidx.leanback.widget.CardPresenter
 import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.leanback.widget.OnItemViewClickedListener
-import androidx.leanback.widget.Presenter
-import androidx.leanback.widget.Row
-import androidx.leanback.widget.RowPresenter
 import com.honglu.typing.R
 import com.honglu.typing.data.ContentItem
 import com.honglu.typing.data.ContentRepository
 
 /**
  * Content selection page: browse by language and difficulty.
- * Uses LeanBack ListRow + ListRowPresenter for TV compatibility.
+ * Uses LeanBack BrowseFragment for TV compatibility.
  */
-class ContentSelectActivity : BrowseFragment() {
+class ContentSelectActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_content_select)
 
-        headersState = HEADERS_ENABLED
+        if (savedInstanceState != null) return
 
-        val ctx: Context = context ?: return
+        val fragment = BrowseFragment.newInstance() as BrowseFragment
 
-        // Create adapter
-        val mainAdapter = ArrayObjectAdapter(ListRowPresenter())
+        // Build adapter with content rows
+        val rowAdapter = ArrayObjectAdapter(ListRowPresenter())
 
-        // English content row
-        val enItems = ArrayObjectAdapter(CardPresenter())
-        val enContent = ContentRepository.listAvailableContent(ctx).filter { it.lang == "English" }
-        enContent.forEach { enItems.add(it) }
-        mainAdapter.add(ListRow(HeaderItem("ENGLISH"), enItems))
+        val enAdapter = ArrayObjectAdapter(CardPresenter())
+        ContentRepository.listAvailableContent(this)
+            .filter { it.lang == "English" }
+            .forEach { enAdapter.add(it) }
+        rowAdapter.add(ListRow(HeaderItem(0, "ENGLISH"), enAdapter))
 
-        // Chinese content row
-        val cnItems = ArrayObjectAdapter(CardPresenter())
-        val cnContent = ContentRepository.listAvailableContent(ctx).filter { it.lang == "Chinese" }
-        cnContent.forEach { cnItems.add(it) }
-        mainAdapter.add(ListRow(HeaderItem("中文"), cnItems))
+        val cnAdapter = ArrayObjectAdapter(CardPresenter())
+        ContentRepository.listAvailableContent(this)
+            .filter { it.lang == "Chinese" }
+            .forEach { cnAdapter.add(it) }
+        rowAdapter.add(ListRow(HeaderItem(1, "中文"), cnAdapter))
 
-        adapter = mainAdapter
+        fragment.headersState = BrowseFragment.HEADERS_ENABLED
+        fragment.title = getString(R.string.menu_content)
+        fragment.adapter = rowAdapter
 
-        onItemViewClickedListener = OnItemViewClickedListener { viewHolder: Presenter.ViewHolder, item: Any, rowViewHolder: RowPresenter.ViewHolder, row: Row ->
-            (item as? ContentItem)?.let {
-                val intent = Intent(ctx, PrimaryModeActivity::class.java)
-                intent.putExtra("content_id", it.id)
-                intent.putExtra("content_lang", it.lang)
+        fragment.onItemViewClickedListener = OnItemViewClickedListener { _, item, _, _ ->
+            (item as? ContentItem)?.let { contentItem ->
+                val intent = Intent(this, PrimaryModeActivity::class.java)
+                intent.putExtra("content_id", contentItem.id)
+                intent.putExtra("content_lang", contentItem.lang)
                 startActivity(intent)
             }
         }
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.browse_fragment_container, fragment, "browse")
+            .commit()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            finish()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }

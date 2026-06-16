@@ -312,7 +312,7 @@ abstract class TypingScreenActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         timeoutRunnable?.let { hintHandler.removeCallbacks(it) }
-        soundManager.cleanup()
+        if (::soundManager.isInitialized) soundManager.cleanup()
         pinyinInputEngine.reset()
     }
 }
