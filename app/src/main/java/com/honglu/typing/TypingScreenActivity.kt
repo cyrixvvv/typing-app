@@ -28,11 +28,11 @@ abstract class TypingScreenActivity : AppCompatActivity() {
 
     // Core engine — engine has no Context dependency, safe to init early
     protected val engine = TypingEngine()
-    // soundManager and scoreManager must be lazy: they call Context-dependent APIs
-    // (SoundPool.load / getSharedPreferences) in their constructors, which run before
-    // onCreate() when the Activity is not yet attached to a Context.
-    protected val soundManager by lazy { SoundManager(this) }
-    protected val scoreManager by lazy { ScoreManager(this) }
+    // soundManager and scoreManager must be initialized in onCreate() AFTER super.onCreate():
+    // their constructors call Context-dependent APIs (SoundPool.load / getSharedPreferences).
+    // Declaring as non-nullable, initialized in onCreate() to guarantee valid Activity context.
+    protected lateinit var soundManager: SoundManager
+    protected lateinit var scoreManager: ScoreManager
     protected val pinyinInputEngine = PinyinInputEngine()
     protected val hintHandler = Handler(Looper.getMainLooper())
 
@@ -47,6 +47,9 @@ abstract class TypingScreenActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Must be initialized here, after super.onCreate(), to guarantee a valid Activity context.
+        soundManager = SoundManager(this)
+        scoreManager = ScoreManager(this)
         loadSettings()
 
         // Load pinyin dictionary
