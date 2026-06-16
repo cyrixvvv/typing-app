@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.fragment.app.FragmentActivity
 import androidx.leanback.widget.ArrayObjectAdapter
-import androidx.leanback.widget.BrowseFragment
+import androidx.leanback.app.BrowseFragment
 import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
