@@ -26,10 +26,13 @@ abstract class TypingScreenActivity : AppCompatActivity() {
     protected abstract val advancedBinding: ActivityAdvancedBinding?
     protected abstract val mode: TypingEngine.Mode
 
-    // Core engine
+    // Core engine — engine has no Context dependency, safe to init early
     protected val engine = TypingEngine()
-    protected val soundManager = SoundManager(this)
-    protected val scoreManager = ScoreManager(this)
+    // soundManager and scoreManager must be lazy: they call Context-dependent APIs
+    // (SoundPool.load / getSharedPreferences) in their constructors, which run before
+    // onCreate() when the Activity is not yet attached to a Context.
+    protected val soundManager by lazy { SoundManager(this) }
+    protected val scoreManager by lazy { ScoreManager(this) }
     protected val pinyinInputEngine = PinyinInputEngine()
     protected val hintHandler = Handler(Looper.getMainLooper())
 
