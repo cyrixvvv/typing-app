@@ -1,124 +1,85 @@
 package com.honglu.typing.main
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
-import androidx.lifecycle.lifecycleScope
+import android.view.KeyEvent
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.R
-import com.honglu.typing.TypingScreenActivity
-import com.honglu.typing.data.ContentRepository
 import com.honglu.typing.databinding.ActivityAdvancedBinding
-import com.honglu.typing.databinding.ActivityPrimaryBinding
-import com.honglu.typing.engine.TypingEngine
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.util.Timer
-import java.util.TimerTask
+import com.honglu.typing.ui.viewmodel.AdvancedViewModel
 
-/**
- * Advanced mode: WPM/CPM test with large text display and statistics.
- */
-class AdvancedModeActivity : TypingScreenActivity() {
+class AdvancedModeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAdvancedBinding
-    private var updateTimer: Timer? = null
-
-    override val mode: TypingEngine.Mode = TypingEngine.Mode.ADVANCED
-
-    override val primaryBinding: ActivityPrimaryBinding? get() = null
-    override val advancedBinding: ActivityAdvancedBinding? get() = if (::binding.isInitialized) binding else null
+    private val viewModel: AdvancedViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        binding = ActivityAdvancedBinding.inflate(layoutInflater)
         super.onCreate(savedInstanceState)
+        binding = ActivityAdvancedBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.hide()
-        bindViews()
-        startProgressUpdate()
-        setContentFromRepository()
-    }
 
-    override fun bindViews() {
         binding.tvBack.setOnClickListener { finish() }
+
+        observeViewModel()
     }
 
-    private fun setContentFromRepository() {
-        // Alternate between English and Chinese content
-        val text = if ((0..1).random() == 0) {
-            ContentRepository.getRandomEnglishText(this)
-        } else {
-            ContentRepository.getRandomChineseText(this)
+    private fun observeViewModel() {
+        // Text
+        viewModel.currentText.observe(this) { binding.tvDisplayText.text = it }
+        // Stats
+        viewModel.wpm.observe(this) { binding.tvWpmValue.text = "%.0f".format(it) }
+        viewModel.cpm.observe(this) { /* optional */ }
+        viewModel.accuracy.observe(this) { binding.tvAccuracyValue.text = "%.0f%%".format(it) }
+        viewModel.score.observe(this) { binding.tvScoreValue.text = "%.0f".format(it) }
+        viewModel.progress.observe(this) { binding.pbProgress.progress = (it * 100).toInt() }
+        // Flash background
+        viewModel.flashActive.observe(this) { active ->
+            val color = if (active) R.color.flash_color1 else R.color.bg_primary
+            binding.root.setBackgroundColor(resources.getColor(color))
         }
-        if (text.isNotEmpty()) {
-            engine.start(text, mode)
-            updateDisplayText()
+        // Encouragement
+        viewModel.encouragement.observe(this) { binding.tvEncourage.text = it }
+        // Hint
+        viewModel.hintText.observe(this) { binding.tvHint.text = it }
+        // Completion
+        viewModel.completionEvent.observe(this) {
+            showCompletionDialog()
         }
     }
 
-    override fun onTextComplete() {
-        lifecycleScope.launch(Dispatchers.Main) {
-            val wpm = engine.calculateWpm()
-            val cpm = engine.calculateCpm()
-            val accuracy = engine.calculateAccuracy()
-            val score = calculateScore()
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) {
+            return super.dispatchKeyEvent(event)
+        }
+        val handled = viewModel.onKeyDown(event.keyCode, event.metaState)
+        if (handled) return true
+        return super.dispatchKeyEvent(event)
+    }
 
-            scoreManager.recordResult(
-                mode = "advanced",
-                contentType = if (engine.currentText.any { it in '一'..'鿿' }) "cn_paragraph" else "en_short",
-                wpm = wpm,
-                cpm = cpm,
-                accuracy = accuracy,
-                score = score,
-                totalKeystrokes = engine.totalKeystrokes,
-                correctKeystrokes = engine.correctKeystrokes
+    private fun showCompletionDialog() {
+        val wpm = viewModel.wpm.value
+        val accuracy = viewModel.accuracy.value
+        val score = viewModel.score.value
+        val cpm = viewModel.cpm.value
+        val isChinese = viewModel.currentText.value?.any { it in '一'..'鿿' } == true
+        val typeStr = if (isChinese) "中文" else "英文"
+        AlertDialog.Builder(this)
+            .setTitle("练习完成！")
+            .setMessage(
+                "WPM: %.0f\nCPM: %.0f\n正确率: %.0f%%\n得分: %d\n类型: %s"
+                    .format(wpm, cpm, accuracy, score, typeStr)
             )
-
-            showCompleteDialog(wpm, accuracy, score)
-        }
-    }
-
-    override fun resetAndRestart() {
-        setContentFromRepository()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        updateTimer?.cancel()
+            .setPositiveButton("再来一次") { _, _ ->
+                viewModel.startNewSession()
+            }
+            .setNegativeButton("返回菜单") { _, _ -> finish() }
+            .show()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        updateTimer?.cancel()
-    }
-
-    private fun startProgressUpdate() {
-        updateTimer = Timer("progress_update", false)
-        updateTimer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                runOnUiThread {
-                    if (engine.isRunning && !engine.isComplete()) {
-                        binding.tvWpmValue.text = String.format("%.0f", engine.calculateWpm())
-                        binding.tvAccuracyValue.text = String.format("%.0f%%", engine.calculateAccuracy())
-
-                        val progress = (engine.getProgress() * 100).toInt()
-                        binding.pbProgress.progress = progress
-
-                        updateEncouragement()
-                    }
-                }
-            }
-        }, 0L, 500L)
-    }
-
-    private fun updateEncouragement() {
-        val streak = engine.consecutiveCorrect
-        val encourage = if (streak >= 50) {
-            getString(R.string.encourage_excellent)
-        } else if (streak >= 20) {
-            getString(R.string.encourage_good)
-        } else if (streak >= 10) {
-            getString(R.string.encourage_keep)
-        } else {
-            ""
-        }
-        binding.tvEncourage.text = encourage
     }
 }
