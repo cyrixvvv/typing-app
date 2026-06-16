@@ -27,15 +27,12 @@ class AdvancedModeActivity : TypingScreenActivity() {
     override val advancedBinding: ActivityAdvancedBinding? get() = if (::binding.isInitialized) binding else null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         binding = ActivityAdvancedBinding.inflate(layoutInflater)
+        super.onCreate(savedInstanceState)
         setContentView(binding.root)
         supportActionBar?.hide()
-
-        // Start progress updates
+        bindViews()
         startProgressUpdate()
-
-        // Set initial content
         setContentFromRepository()
     }
 

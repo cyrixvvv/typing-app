@@ -30,12 +30,11 @@ class PrimaryModeActivity : TypingScreenActivity() {
     private var candidateIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         binding = ActivityPrimaryBinding.inflate(layoutInflater)
+        super.onCreate(savedInstanceState)
         setContentView(binding.root)
         supportActionBar?.hide()
-
-        // Set initial content
+        bindViews()
         setContentFromRepository()
     }
 
