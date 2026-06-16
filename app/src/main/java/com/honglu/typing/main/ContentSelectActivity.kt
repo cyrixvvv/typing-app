@@ -4,9 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.fragment.app.FragmentActivity
-import androidx.leanback.app.BrowseFragment
 import androidx.leanback.widget.ArrayObjectAdapter
-import androidx.leanback.widget.CardPresenter
+import androidx.leanback.widget.BrowseFragment
 import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
@@ -27,26 +26,26 @@ class ContentSelectActivity : FragmentActivity() {
 
         if (savedInstanceState != null) return
 
-        val fragment = BrowseFragment.newInstance() as BrowseFragment
+        // Note: BrowseFragment() constructor is public, no newInstance() needed
+        val fragment = BrowseFragment()
 
-        // Build adapter with content rows
-        val rowAdapter = ArrayObjectAdapter(ListRowPresenter())
+        val adapter = ArrayObjectAdapter(ListRowPresenter())
 
         val enAdapter = ArrayObjectAdapter(CardPresenter())
         ContentRepository.listAvailableContent(this)
             .filter { it.lang == "English" }
             .forEach { enAdapter.add(it) }
-        rowAdapter.add(ListRow(HeaderItem(0, "ENGLISH"), enAdapter))
+        adapter.add(ListRow(HeaderItem(0, "ENGLISH"), enAdapter))
 
         val cnAdapter = ArrayObjectAdapter(CardPresenter())
         ContentRepository.listAvailableContent(this)
             .filter { it.lang == "Chinese" }
             .forEach { cnAdapter.add(it) }
-        rowAdapter.add(ListRow(HeaderItem(1, "中文"), cnAdapter))
+        adapter.add(ListRow(HeaderItem(1, "中文"), cnAdapter))
 
         fragment.headersState = BrowseFragment.HEADERS_ENABLED
         fragment.title = getString(R.string.menu_content)
-        fragment.adapter = rowAdapter
+        fragment.adapter = adapter
 
         fragment.onItemViewClickedListener = OnItemViewClickedListener { _, item, _, _ ->
             (item as? ContentItem)?.let { contentItem ->
@@ -57,8 +56,9 @@ class ContentSelectActivity : FragmentActivity() {
             }
         }
 
+        // R.id.browse_fragment_container is a FrameLayout, so pass it as the container View ID
         supportFragmentManager.beginTransaction()
-            .replace(R.id.browse_fragment_container, fragment, "browse")
+            .replace(R.id.browse_fragment_container, fragment)
             .commit()
     }
 
