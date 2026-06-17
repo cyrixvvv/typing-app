@@ -4,7 +4,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.viewmodels.viewModels
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.R
 import com.honglu.typing.databinding.ActivityPrimaryBinding
