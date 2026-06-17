@@ -38,7 +38,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     val isRunning = MutableLiveData<Boolean>(false)
     val wpm = MutableLiveData<Float>(0f)
     val cpm = MutableLiveData<Float>(0f)
-    val accuracy = MutableLiveData<Float>(100f)
+    val accuracy = MutableLiveData<Float>(0f)
     val score = MutableLiveData<Int>(0)
     val highlightedKey = MutableLiveData<Char?>(null)
     val pressedKeys = MutableLiveData<Set<Char>>(emptySet())
@@ -121,6 +121,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         when (keyCode) {
             KeyEvent.KEYCODE_SPACE -> {
                 if (selectingCandidates.value == true) {
+                    if (isChineseContent) candidateIndex.value = 0 // SPACE picks first
                     confirmCandidate()
                     return true
                 }
@@ -182,6 +183,15 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
+        // Chinese mode: number keys select candidates directly when selecting
+        if (selectingCandidates.value == true && isChineseContent &&
+            keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
+            val idx = keyCode - KeyEvent.KEYCODE_0
+            val list = candidateList.value ?: emptyList()
+            if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
+            return true
+        }
+
         val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
         val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
@@ -192,7 +202,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
                 showCandidates()
             } else {
-                hintText.value = "拼音: $pinyinAccumulator ↑选字"
+                hintText.value = "拼音: $pinyinAccumulator"
             }
             return true
         }
@@ -264,10 +274,10 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun updateCandidateHint() {
-        val candidate = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: ""
         val candidates = candidateList.value ?: emptyList()
-        val total = candidates.size
-        hintText.value = "拼音: $pinyinAccumulator → [$candidate] (${total}选) ← → Enter确认"
+        if (candidates.isEmpty()) return
+        val items = candidates.take(9).mapIndexed { i, c -> "${i+1}.$c" }.joinToString("  ")
+        hintText.value = "拼音: $pinyinAccumulator  $items"
     }
 
     private fun confirmCandidate() {
@@ -299,8 +309,9 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         isRunning.value = engine.isRunning
         wpm.value = engine.calculateWpm()
         cpm.value = engine.calculateCpm()
-        accuracy.value = engine.calculateAccuracy()
-        score.value = calculateScore()
+        // Show 0 when not started yet (engine.calculateAccuracy() defaults to 100)
+        accuracy.value = if (engine.isRunning) engine.calculateAccuracy() else 0f
+        score.value = if (engine.isRunning) calculateScore() else 0
         highlightedKey.value = engine.getNextExpectedChar()
         progress.value = engine.getProgress()
     }
@@ -313,17 +324,30 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun handleCompletion() {
+        // Capture engine state to local vars before firing completionEvent
+        // (Activity observer may call startNewSession() which resets the engine)
+        val capturedText = engine.currentText
+        val capturedWpm = engine.calculateWpm()
+        val capturedCpm = engine.calculateCpm()
+        val capturedAccuracy = engine.calculateAccuracy()
+        val capturedScore = calculateScore()
+        val capturedTotalK = engine.totalKeystrokes
+        val capturedCorrectK = engine.correctKeystrokes
+        val contentType = if (capturedText.any { it in '一'..'鿿' }) "cn_short" else "en_short"
+
         viewModelScope.launch {
-            val record = RecordEntity(
-                mode = "primary",
-                contentType = if (isChineseContent) "cn_short" else "en_short",
-                wpm = engine.calculateWpm(), cpm = engine.calculateCpm(),
-                accuracy = engine.calculateAccuracy(), score = calculateScore(),
-                totalKeystrokes = engine.totalKeystrokes,
-                correctKeystrokes = engine.correctKeystrokes,
-                date = System.currentTimeMillis()
-            )
-            recordDao.insert(record)
+            try {
+                val record = RecordEntity(
+                    mode = "primary",
+                    contentType = contentType,
+                    wpm = capturedWpm, cpm = capturedCpm,
+                    accuracy = capturedAccuracy, score = capturedScore,
+                    totalKeystrokes = capturedTotalK,
+                    correctKeystrokes = capturedCorrectK,
+                    date = System.currentTimeMillis()
+                )
+                recordDao.insert(record)
+            } catch (_: Exception) { /* silent */ }
         }
         completionEvent.value = Unit
     }

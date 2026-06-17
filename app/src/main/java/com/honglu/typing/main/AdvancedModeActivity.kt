@@ -63,7 +63,7 @@ class AdvancedModeActivity : AppCompatActivity() {
         // ---- Hints ----
         viewModel.hintText.observe(this) { binding.tvHint.text = it }
         viewModel.pinyinBuffer.observe(this) { buf ->
-            if (buf.isNotEmpty()) binding.tvHint.text = buf
+            // pinyin info is embedded in hintText via updateCandidateHint(), no override needed
         }
 
         // ---- Wrong flash ----
@@ -93,6 +93,11 @@ class AdvancedModeActivity : AppCompatActivity() {
         viewModel.completionEvent.observe(this) {
             viewModel.nextContent()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binding.root.requestFocus()
     }
 
     // ==================== Content Mode Tabs ====================

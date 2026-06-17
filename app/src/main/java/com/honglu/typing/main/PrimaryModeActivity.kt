@@ -120,6 +120,11 @@ class PrimaryModeActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        binding.keyboardView.requestFocus()
+    }
+
     private fun updateDisplayText() {
         val fullText = viewModel.currentText.value ?: ""
         val index = viewModel.currentIndex.value ?: 0
