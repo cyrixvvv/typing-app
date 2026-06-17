@@ -2,7 +2,6 @@ package com.honglu.typing.main
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Gravity
 import android.view.KeyEvent
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -11,10 +10,6 @@ import com.honglu.typing.R
 import com.honglu.typing.data.ContentItem
 import com.honglu.typing.data.ContentRepository
 
-/**
- * Content selection page: browse by language and difficulty.
- * Simple linear layout with clickable content cards — no Leanback dependency.
- */
 class ContentSelectActivity : AppCompatActivity() {
 
     private lateinit var enContainer: LinearLayout
@@ -29,7 +24,21 @@ class ContentSelectActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.tv_back).setOnClickListener { finish() }
 
+        findViewById<TextView>(R.id.tv_random_en).setOnClickListener {
+            launchRandom("random_en", "English")
+        }
+        findViewById<TextView>(R.id.tv_random_cn).setOnClickListener {
+            launchRandom("random_cn", "Chinese")
+        }
+
         populateContent()
+    }
+
+    private fun launchRandom(contentId: String, lang: String) {
+        val intent = Intent(this, PrimaryModeActivity::class.java)
+        intent.putExtra("content_id", contentId)
+        intent.putExtra("content_lang", lang)
+        startActivity(intent)
     }
 
     private fun populateContent() {
@@ -50,7 +59,7 @@ class ContentSelectActivity : AppCompatActivity() {
             textSize = 20f
             setTextColor(resources.getColor(R.color.text_primary, null))
             setBackgroundColor(resources.getColor(R.color.bg_key, null))
-            gravity = Gravity.CENTER
+            gravity = android.view.Gravity.CENTER
             val pad = (8 * resources.displayMetrics.density).toInt()
             setPadding(pad, pad * 2, pad, pad * 2)
 

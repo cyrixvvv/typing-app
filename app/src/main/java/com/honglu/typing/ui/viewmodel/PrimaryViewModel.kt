@@ -48,13 +48,16 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     val hintText = MutableLiveData<String>(context.getString(R.string.primary_hint))
     val completionEvent = MutableLiveData<Unit>()
 
-    // Pinyin candidate UI
+    // Pinyin UI
     val selectingCandidates = MutableLiveData<Boolean>(false)
     val candidateList = MutableLiveData<List<String>>(emptyList())
     val candidateIndex = MutableLiveData<Int>(0)
+    val pinyinBuffer = MutableLiveData<String>("")  // shows accumulated pinyin
 
-    // Wrong key flash
     val wrongKeyFlash = MutableLiveData<Boolean>(false)
+
+    // Auto-advance: when true, completion auto-loads next random content
+    var autoAdvance = false
 
     private var lastActivityTime = 0L
     private val timeoutSeconds = 5L
@@ -62,11 +65,8 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     private var clearKeysJob: Job? = null
     private var wrongFlashJob: Job? = null
 
-    // Pinyin state
     private var pinyinAccumulator = ""
     private var isChineseContent = false
-
-    // Intent extras
     private var pendingContentId: String? = null
     private var pendingContentLang: String? = null
 
@@ -79,20 +79,20 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         pendingContentId = contentId
         pendingContentLang = lang
         isChineseContent = (lang == "Chinese")
+        autoAdvance = (contentId == "random_en" || contentId == "random_cn")
         startNewSession()
     }
 
     private fun loadDictionary() {
-        try {
-            pinyinInputEngine.loadDictionary(context, "pinyin_dict.json")
-        } catch (_: Exception) { }
+        try { pinyinInputEngine.loadDictionary(context, "pinyin_dict.json") } catch (_: Exception) { }
     }
 
     fun startNewSession() {
-        val text = if (pendingContentId != null) {
-            ContentRepository.getTextById(context, pendingContentId!!)
-        } else {
-            ContentRepository.getRandomEnglishText(context)
+        val text = when {
+            pendingContentId == "random_en" -> ContentRepository.getRandomEnglishText(context)
+            pendingContentId == "random_cn" -> ContentRepository.getRandomChineseText(context)
+            pendingContentId != null -> ContentRepository.getTextById(context, pendingContentId!!)
+            else -> ContentRepository.getRandomEnglishText(context)
         }
         pendingContentId = null
         pendingContentLang = null
@@ -108,6 +108,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
 
     private fun resetPinyinState() {
         pinyinAccumulator = ""
+        pinyinBuffer.value = ""
         selectingCandidates.value = false
         candidateList.value = emptyList()
         candidateIndex.value = 0
@@ -121,6 +122,10 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             KeyEvent.KEYCODE_SPACE,
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_DPAD_CENTER -> {
+                if (selectingCandidates.value == true) {
+                    confirmCandidate()
+                    return true
+                }
                 if (!engine.isRunning && !engine.isComplete()) {
                     engine.markStarted()
                     hintText.value = ""
@@ -128,6 +133,17 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
                 return true
             }
             KeyEvent.KEYCODE_DEL -> {
+                if (selectingCandidates.value == true) {
+                    if (pinyinAccumulator.isNotEmpty()) {
+                        pinyinAccumulator = pinyinAccumulator.dropLast(1)
+                        pinyinBuffer.value = pinyinAccumulator
+                        if (pinyinAccumulator.isEmpty()) {
+                            cancelCandidateSelection()
+                        }
+                        return true
+                    }
+                    return true
+                }
                 if (engine.currentIndex > 0) {
                     engine.currentIndex--
                     if (isChineseContent) resetPinyinState()
@@ -135,16 +151,12 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
                 }
                 return true
             }
-            KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> {
-                return false
-            }
+            KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> return false
             KeyEvent.KEYCODE_DPAD_UP -> {
-                // In Chinese mode, trigger candidate selection explicitly
-                if (isChineseContent && pinyinAccumulator.length >= 1) {
-                    if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
-                        showCandidates()
-                        return true
-                    }
+                if (isChineseContent && pinyinAccumulator.length >= 1 &&
+                    pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
+                    showCandidates()
+                    return true
                 }
                 return false
             }
@@ -153,21 +165,20 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
         val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
-        // Handle Chinese pinyin input
+        // Chinese pinyin input
         if (isChineseContent && char in 'a'..'z') {
             pinyinAccumulator += char
-            // Immediately check for candidates after typing more pinyin
+            pinyinBuffer.value = pinyinAccumulator
             if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
                 showCandidates()
-                return true
+            } else {
+                hintText.value = "拼音: $pinyinAccumulator ↑选字"
             }
             return true
         }
 
-        // English content: pass to engine
+        // English: pass to engine
         val isCorrect = engine.processKeyPress(char)
-
-        // Keyboard visual feedback
         highlightedKey.value = engine.getNextExpectedChar()
         val lower = char.lowercaseChar()
         pressedKeys.value = setOf(lower)
@@ -183,27 +194,18 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         }
 
         updateUiFromEngine()
-
-        if (engine.isComplete()) {
-            handleCompletion()
-        }
+        if (engine.isComplete()) handleCompletion()
         return true
     }
 
     private fun scheduleClearPressedKeys() {
         clearKeysJob?.cancel()
-        clearKeysJob = viewModelScope.launch {
-            delay(180)
-            pressedKeys.value = emptySet()
-        }
+        clearKeysJob = viewModelScope.launch { delay(180); pressedKeys.value = emptySet() }
     }
 
     private fun scheduleClearWrongFlash() {
         wrongFlashJob?.cancel()
-        wrongFlashJob = viewModelScope.launch {
-            delay(300)
-            wrongKeyFlash.value = false
-        }
+        wrongFlashJob = viewModelScope.launch { delay(300); wrongKeyFlash.value = false }
     }
 
     private fun showCandidates() {
@@ -221,35 +223,20 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT -> {
                 val size = (candidateList.value ?: emptyList()).size
-                if (size > 0) {
-                    candidateIndex.value = ((candidateIndex.value ?: 0) - 1 + size) % size
-                }
-                updateCandidateHint()
-                true
+                if (size > 0) candidateIndex.value = ((candidateIndex.value ?: 0) - 1 + size) % size
+                updateCandidateHint(); true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 val size = (candidateList.value ?: emptyList()).size
-                if (size > 0) {
-                    candidateIndex.value = ((candidateIndex.value ?: 0) + 1) % size
-                }
-                updateCandidateHint()
-                true
+                if (size > 0) candidateIndex.value = ((candidateIndex.value ?: 0) + 1) % size
+                updateCandidateHint(); true
             }
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {
-                confirmCandidate()
-                true
-            }
-            KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> {
-                cancelCandidateSelection()
-                true
-            }
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> { confirmCandidate(); true }
+            KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> { cancelCandidateSelection(); true }
             in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
                 val idx = keyCode - KeyEvent.KEYCODE_0
                 val list = candidateList.value ?: emptyList()
-                if (idx in list.indices) {
-                    candidateIndex.value = idx
-                    confirmCandidate()
-                }
+                if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
                 true
             }
             else -> false
@@ -258,12 +245,13 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
 
     private fun updateCandidateHint() {
         val candidate = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: ""
-        hintText.value = "候选: [$candidate] ← → 切换, Enter确认"
+        val candidates = candidateList.value ?: emptyList()
+        val total = candidates.size
+        hintText.value = "拼音: $pinyinAccumulator → [$candidate] ($total选) ← → Enter确认"
     }
 
     private fun confirmCandidate() {
         val chosenChar = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: return
-        // Insert the chosen character at current position in the engine text
         val textBuilder = StringBuilder(engine.currentText)
         if (engine.currentIndex < textBuilder.length) {
             textBuilder[engine.currentIndex] = chosenChar[0]
@@ -301,11 +289,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         val acc = engine.calculateAccuracy()
         val w = engine.calculateWpm()
         val streak = engine.consecutiveCorrect
-        var s = 0
-        s += (acc / 10 * 100).toInt()
-        s += (w / 5 * 10).toInt()
-        s += streak * 2
-        return s
+        return (acc / 10 * 100).toInt() + (w / 5 * 10).toInt() + streak * 2
     }
 
     private fun handleCompletion() {
@@ -313,10 +297,8 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             val record = RecordEntity(
                 mode = "primary",
                 contentType = if (isChineseContent) "cn_short" else "en_short",
-                wpm = engine.calculateWpm(),
-                cpm = engine.calculateCpm(),
-                accuracy = engine.calculateAccuracy(),
-                score = calculateScore(),
+                wpm = engine.calculateWpm(), cpm = engine.calculateCpm(),
+                accuracy = engine.calculateAccuracy(), score = calculateScore(),
                 totalKeystrokes = engine.totalKeystrokes,
                 correctKeystrokes = engine.correctKeystrokes,
                 date = System.currentTimeMillis()
@@ -326,27 +308,33 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         completionEvent.value = Unit
     }
 
+    // Called by Activity when dialog "再来一次" or auto-advance
+    fun nextContent() {
+        if (autoAdvance) {
+            pendingContentId = if (isChineseContent) "random_cn" else "random_en"
+            pendingContentLang = if (isChineseContent) "Chinese" else "English"
+            startNewSession()
+        } else {
+            startNewSession()
+        }
+    }
+
     private fun startTimeoutWatcher() {
         timeoutJob?.cancel()
         timeoutJob = viewModelScope.launch {
             while (true) {
                 delay(500)
                 val running = engine.isRunning && !engine.isComplete()
-                val timeout = engine.isTimeout(lastActivityTime, timeoutSeconds)
-                flashActive.value = running && timeout
+                flashActive.value = running && engine.isTimeout(lastActivityTime, timeoutSeconds)
             }
         }
     }
 
-    private fun restartTimeoutWatcher() {
-        lastActivityTime = System.currentTimeMillis()
-    }
+    private fun restartTimeoutWatcher() { lastActivityTime = System.currentTimeMillis() }
 
     override fun onCleared() {
         super.onCleared()
-        timeoutJob?.cancel()
-        clearKeysJob?.cancel()
-        wrongFlashJob?.cancel()
+        timeoutJob?.cancel(); clearKeysJob?.cancel(); wrongFlashJob?.cancel()
         soundManager.cleanup()
     }
 }

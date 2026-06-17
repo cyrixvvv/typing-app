@@ -102,6 +102,17 @@
         android:layout_marginTop="2dp"
         android:layout_marginBottom="2dp" />
 
+    <!-- Pinyin buffer (shows while typing pinyin) -->
+    <TextView
+        android:id="@+id/tv_pinyin_buffer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/color_gold"
+        android:textSize="@dimen/text_size_hint"
+        android:gravity="center"
+        android:padding="1dp" />
+
     <!-- Encouragement text -->
     <TextView
         android:id="@+id/tv_encourage"

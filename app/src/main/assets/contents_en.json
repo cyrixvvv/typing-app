@@ -1,54 +1,54 @@
 {
   "items": [
-    {
-      "id": 1,
-      "title": "The Quick Brown Fox",
-      "text": "The quick brown fox jumps over the lazy dog."
-    },
-    {
-      "id": 2,
-      "title": "To Be or Not to Be",
-      "text": "To be or not to be, that is the question."
-    },
-    {
-      "id": 3,
-      "title": "Jack and Jill",
-      "text": "Jack and Jill went up the hill to fetch a pail of water."
-    },
-    {
-      "id": 4,
-      "title": "Simple Reading",
-      "text": "The sun is warm. The sky is blue. I like to play outside."
-    },
-    {
-      "id": 5,
-      "title": "My Family",
-      "text": "My family is small. I have a mother and a father. I have a brother and a sister."
-    },
-    {
-      "id": 6,
-      "title": "At School",
-      "text": "I go to school every day. I learn to read and write. I like my teacher."
-    },
-    {
-      "id": 7,
-      "title": "The Four Seasons",
-      "text": "Spring is warm. Summer is hot. Fall is cool. Winter is cold."
-    },
-    {
-      "id": 8,
-      "title": "Animals",
-      "text": "The cat sits on the mat. The dog runs in the yard. The birds fly in the sky."
-    },
-    {
-      "id": 9,
-      "title": "Food and Drink",
-      "text": "I eat bread and drink milk every morning. I like apples and bananas."
-    },
-    {
-      "id": 10,
-      "title": "My Day",
-      "text": "I wake up at seven. I eat breakfast. I go to school. I come home at four."
-    }
+    {"id": 1, "title": "The Quick Brown Fox", "text": "The quick brown fox jumps over the lazy dog."},
+    {"id": 2, "title": "To Be or Not to Be", "text": "To be or not to be, that is the question."},
+    {"id": 3, "title": "Jack and Jill", "text": "Jack and Jill went up the hill to fetch a pail of water."},
+    {"id": 4, "title": "Simple Reading", "text": "The sun is warm. The sky is blue. I like to play outside."},
+    {"id": 5, "title": "My Family", "text": "My family is small. I have a mother and a father. I have a brother and a sister."},
+    {"id": 6, "title": "At School", "text": "I go to school every day. I learn to read and write. I like my teacher."},
+    {"id": 7, "title": "The Four Seasons", "text": "Spring is warm. Summer is hot. Fall is cool. Winter is cold."},
+    {"id": 8, "title": "Animals", "text": "The cat sits on the mat. The dog runs in the yard. The birds fly in the sky."},
+    {"id": 9, "title": "Food and Drink", "text": "I eat bread and drink milk every morning. I like apples and bananas."},
+    {"id": 10, "title": "My Day", "text": "I wake up at seven. I eat breakfast. I go to school. I come home at four."},
+    {"id": 11, "title": "A Visit to the Zoo", "text": "We went to the zoo on Sunday. We saw lions and tigers. The monkeys were very funny. The elephants were very big."},
+    {"id": 12, "title": "My Best Friend", "text": "Tom is my best friend. He is tall and kind. We play basketball together. We help each other with homework."},
+    {"id": 13, "title": "A Rainy Day", "text": "It is raining outside. I stay at home and read a book. My mother makes hot tea. The rain sounds nice on the roof."},
+    {"id": 14, "title": "My Pet Dog", "text": "I have a pet dog. His name is Max. He has brown fur and big eyes. He likes to run in the park. He is my good friend."},
+    {"id": 15, "title": "Going Shopping", "text": "Mom and I go to the supermarket. We buy bread and milk. We buy apples and oranges. I carry the shopping bag."},
+    {"id": 16, "title": "The Little Star", "text": "Twinkle twinkle little star. How I wonder what you are. Up above the world so high. Like a diamond in the sky."},
+    {"id": 17, "title": "A Happy Day at the Beach", "text": "My family goes to the beach. The sun is bright. The water is blue. I build a sand castle. My sister collects shells. We have a lot of fun."},
+    {"id": 18, "title": "My School Day Schedule", "text": "I have six classes every day. Math is my favorite subject. I like English too. After class I play with my friends."},
+    {"id": 19, "title": "Health and Exercise", "text": "Running is good exercise. I run every morning. I also like to swim. Exercise keeps me healthy and strong."},
+    {"id": 20, "title": "A Letter to Grandma", "text": "Dear Grandma, How are you? I miss you very much. I am doing well at school. I will visit you next month. Love, your grandson."},
+    {"id": 21, "title": "The Ant and the Grasshopper", "text": "The ant works hard all summer. The grasshopper plays music all day. Winter comes. The grasshopper is cold and hungry. The ant shares his food. The grasshopper learns to work hard."},
+    {"id": 22, "title": "My Hometown", "text": "My hometown is a small town. There is a river through the town. There are many trees and flowers. The air is clean and fresh. I love my hometown very much."},
+    {"id": 23, "title": "Protect the Environment", "text": "We should protect the environment. We should not litter. We should save water and electricity. We should plant more trees. A clean world is a happy world."},
+    {"id": 24, "title": "Dreams and Goals", "text": "Everyone has a dream. I want to be a teacher. I want to help children learn. I study hard every day. I believe my dream will come true."},
+    {"id": 25, "title": "The Fox and the Grapes", "text": "A fox sees some grapes high on a vine. He wants to eat them. He jumps but cannot reach them. He says the grapes are sour. It is easy to dislike what you cannot have."},
+    {"id": 26, "title": "A Trip to the Farm", "text": "We visit a farm on Saturday. There are cows and sheep. The farmer shows us how to milk a cow. We feed the chickens. It is a wonderful experience."},
+    {"id": 27, "title": "Good Manners", "text": "Good manners are important. Always say please and thank you. Wait for your turn. Share with others. Be kind to everyone. Good manners make the world better."},
+    {"id": 28, "title": "The Moon", "text": "The moon shines at night. It changes shape. Sometimes it is round like a ball. Sometimes it is a small curve. The moon is beautiful in the dark sky."},
+    {"id": 29, "title": "My Favorite Hobby", "text": "Reading is my favorite hobby. I read story books and comics. Books take me to different worlds. I learn new things from books. Reading makes me happy."},
+    {"id": 30, "title": "The Tortoise and the Hare", "text": "The hare is fast but lazy. He stops to rest during the race. The tortoise is slow but steady. He keeps moving forward. The tortoise wins the race. Slow and steady wins the race."},
+    {"id": 31, "title": "Caring for Others", "text": "It is important to care for others. Help your friends when they need you. Visit sick classmates. Share your toys and snacks. A little kindness goes a long way."},
+    {"id": 32, "title": "Space Exploration", "text": "People have always looked at the stars. Now we can travel to space. Astronauts live on the space station. They do science experiments. One day we might live on Mars."},
+    {"id": 33, "title": "A Gift for Mother", "text": "Mothers Day is coming. I want to give Mom a gift. I make a card with flowers on it. I write I love you Mom inside. She smiles and gives me a big hug."},
+    {"id": 34, "title": "The Clever Rabbit", "text": "A wolf chases a rabbit. The rabbit runs into a hole. The wolf waits outside. The rabbit says I will come out now. The wolf opens his mouth wide. The rabbit throws dust in his eyes and escapes."},
+    {"id": 35, "title": "My Classroom", "text": "My classroom is big and clean. There are thirty desks and chairs. A blackboard is on the wall. There are plants on the window sill. I like my classroom very much."},
+    {"id": 36, "title": "Different Cultures", "text": "The world has many different cultures. People eat different foods. They wear different clothes. They speak different languages. We should respect all cultures."},
+    {"id": 37, "title": "The Water Cycle", "text": "The sun heats the water in rivers and seas. The water turns into vapor. It goes up into the sky and forms clouds. When the clouds are heavy it rains. The water comes back to the earth."},
+    {"id": 38, "title": "Helping at Home", "text": "I help my parents at home. I set the table for dinner. I water the plants. I clean my room. Helping at home makes me feel grown up."},
+    {"id": 39, "title": "The City and the Country", "text": "The city has tall buildings and busy streets. The country has fields and fresh air. In the city you can visit museums. In the country you can hear birds sing. Both are nice places to live."},
+    {"id": 40, "title": "Never Give Up", "text": "Learning something new is hard at first. You might make mistakes. Do not give up. Keep trying and practicing. One day you will succeed. Never give up on your dreams."},
+    {"id": 41, "title": "How Bees Make Honey", "text": "Bees fly from flower to flower. They collect nectar with their tongues. They carry the nectar back to the hive. Other bees turn it into honey. Honey is sweet and good for you."},
+    {"id": 42, "title": "My Dream Job", "text": "When I grow up I want to be a doctor. I want to help sick people get better. Doctors work hard but they save lives. I will study biology and chemistry. I will work in a hospital one day."},
+    {"id": 43, "title": "The Solar System", "text": "The solar system has eight planets. Mercury is the closest to the sun. Earth is our home. Mars is called the red planet. Jupiter is the biggest planet. The solar system is amazing."},
+    {"id": 44, "title": "A Surprise Party", "text": "We plan a surprise party for Dad. Mom makes a cake. I blow up balloons. Dad comes home and is very surprised. Happy birthday Dad We all shout. He has tears of joy in his eyes."},
+    {"id": 45, "title": "Teamwork", "text": "Our class plays a basketball game. One player cannot win alone. We pass the ball to each other. We work as a team. We win the game. Teamwork makes the dream work."},
+    {"id": 46, "title": "The Importance of Reading", "text": "Reading opens the door to knowledge. It improves your vocabulary and writing skills. It makes you think more deeply. Try to read for twenty minutes every day. It will change your life."},
+    {"id": 47, "title": "A Day Without Technology", "text": "Imagine a day without phones or computers. You can play outside. You can talk to your family. You can read a real book. Sometimes life without technology is very peaceful."},
+    {"id": 48, "title": "The Brave Little Mouse", "text": "A little mouse lives in a big house. He is afraid of everything. One day he sees a cat chasing a bird. He bravely scares the cat away. The bird is saved. The mouse learns he is braver than he thinks."},
+    {"id": 49, "title": "Growing a Plant", "text": "I plant a seed in a small pot. I water it every day. I put it in the sun. After a week a small sprout appears. The plant grows bigger every day. I am proud of my plant."},
+    {"id": 50, "title": "Friendship", "text": "A true friend is always there for you. Friends share joy and sadness. They help you when you are down. They celebrate with you when you are happy. Friendship is one of life's greatest treasures."}
   ]
 }

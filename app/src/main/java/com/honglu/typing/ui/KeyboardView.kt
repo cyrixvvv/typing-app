@@ -104,7 +104,7 @@ class KeyboardView @JvmOverloads constructor(
         val maxRowKeyCount = ROWS.maxOf { it.size }
         keyGap = maxOf(4f, usableWidth * 0.01f)
         keyWidth = (usableWidth - keyGap * (maxRowKeyCount + 1)) / maxRowWidthRatio
-        keyHeight = keyWidth * 0.55f
+        keyHeight = maxOf(keyWidth * 0.55f, 24f)
     }
 
     override fun onDraw(canvas: Canvas) {
