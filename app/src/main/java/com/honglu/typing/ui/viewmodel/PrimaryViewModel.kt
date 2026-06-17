@@ -118,12 +118,11 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         lastActivityTime = System.currentTimeMillis()
         restartTimeoutWatcher()
 
-        val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
-        val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
-
-        // Handle special keys first
+        // Handle special keys BEFORE char mapping (SPACE not in keyCodeToChar)
         when (keyCode) {
-            android.view.KeyEvent.KEYCODE_SPACE -> {
+            android.view.KeyEvent.KEYCODE_SPACE,
+            android.view.KeyEvent.KEYCODE_ENTER,
+            android.view.KeyEvent.KEYCODE_DPAD_CENTER -> {
                 if (!engine.isRunning && !engine.isComplete()) {
                     engine.markStarted()
                     hintText.value = ""
@@ -142,6 +141,9 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
                 return false
             }
         }
+
+        val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
+        val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
         // Let ViewModel handle pinyin first
         if (tryHandlePinyinKey(char)) {

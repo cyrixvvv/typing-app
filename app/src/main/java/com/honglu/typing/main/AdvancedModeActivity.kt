@@ -33,7 +33,7 @@ class AdvancedModeActivity : AppCompatActivity() {
         viewModel.wpm.observe(this) { binding.tvWpmValue.text = "%.0f".format(it) }
         viewModel.cpm.observe(this) { /* optional */ }
         viewModel.accuracy.observe(this) { binding.tvAccuracyValue.text = "%.0f%%".format(it) }
-        viewModel.score.observe(this) { binding.tvScoreValue.text = "%.0f".format(it) }
+        viewModel.score.observe(this) { binding.tvScoreValue.text = "%d".format(it) }
         viewModel.progress.observe(this) { binding.pbProgress.progress = (it * 100).toInt() }
         // Flash background
         viewModel.flashActive.observe(this) { active ->
