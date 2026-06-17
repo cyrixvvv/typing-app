@@ -42,26 +42,26 @@ typing-app/
         │   └── pinyin_dict.json       # 拼音字典 (pinyin → [字符, 频率])
         ├── java/com/honglu/typing/
         │   ├── MainActivity.kt            # 主菜单 → 初级/高级/内容选择/设置
-        │   ├── TypingScreenActivity.kt    # 抽象基类: 键盘事件分发/显示更新/计时/评分
         │   ├── engine/
         │   │   ├── TypingEngine.kt        # 核心引擎: 按键匹配/WPM/CPM/准确率
         │   │   ├── ScoreManager.kt        # 评分计算
         │   │   └── SoundManager.kt        # 按键音效 (correct/wrong/click)
         │   ├── input/
-        │   │   ├── InputMode.kt           # 状态机: English / Pinyin / PinyinSelecting
         │   │   └── PinyinInputEngine.kt   # 拼音引擎: 字典加载 + 候选字检索
         │   ├── main/
         │   │   ├── PrimaryModeActivity.kt     # 初级模式: 指法训练 + 拼音
         │   │   ├── AdvancedModeActivity.kt     # 高级模式: WPM 速度测试
-        │   │   ├── ContentSelectActivity.kt   # 内容选择界面 (CardPresenter)
-        │   │   ├── SettingsActivity.kt        # 设置: 音效/超时时间/清空数据
-        │   │   └── CardPresenter.kt           # LeanBack 卡片展示器
+        │   │   ├── ContentSelectActivity.kt   # 内容选择界面
+        │   │   └── SettingsActivity.kt        # 设置: 音效/超时时间/清空数据
         │   ├── data/
         │   │   ├── AppDatabase.kt             # Room 数据库单例
         │   │   ├── RecordEntity.kt            # 练习记录实体
-        │   │   └── ContentRepository.kt       # 随机文本抽取
+        │   │   └── ContentRepository.kt       # 内容管理 + assets 动态加载
         │   ├── ui/
-        │   │   └── KeyboardView.kt            # 自定义虚拟键盘视图
+        │   │   ├── KeyboardView.kt            # 自定义虚拟键盘视图
+        │   │   └── viewmodel/
+        │   │       ├── PrimaryViewModel.kt    # 初级模式 ViewModel
+        │   │       └── AdvancedViewModel.kt   # 高级模式 ViewModel
         │   └── util/
         │       ├── DeviceUtils.kt             # 键盘/遥控器事件识别
         │       └── TimeUtils.kt               # 时间工具
@@ -74,15 +74,13 @@ typing-app/
 
 ## 核心设计
 
-### TypingScreenActivity — 双模式基类
+### ViewModel 架构
 
-所有打字界面继承 `TypingScreenActivity`，统一处理：
+每个打字模式由独立的 Activity + ViewModel 组成：
 
-1. **事件分发**：物理键盘（OTG）→ 遥控器 D-pad → 子类拼音处理
-2. **显示更新**：进度标记 `【char】`、未输入显示 `_`、高级模式保留原文
-3. **超时提醒**：5 秒无操作键盘闪烁动画（可设置）
-4. **评分系统**：准确率 (40%) + 速度 (40%) + 连续正确奖励 (20%)
-5. **结果持久化**：完成后自动写入 Room 数据库
+1. **PrimaryModeActivity + PrimaryViewModel**：初级指法训练，含虚拟键盘、拼音输入
+2. **AdvancedModeActivity + AdvancedViewModel**：高级 WPM/CPM 速度测试，含鼓励语、进度条
+3. **TypingEngine** — 纯逻辑核心，无 UI 依赖，被所有 ViewModel 共用
 
 ### TypingEngine — 纯逻辑核心
 

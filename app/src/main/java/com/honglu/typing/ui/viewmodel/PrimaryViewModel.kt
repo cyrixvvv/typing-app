@@ -2,11 +2,13 @@ package com.honglu.typing.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.view.KeyEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.honglu.typing.R
 import com.honglu.typing.data.ContentRepository
+import com.honglu.typing.data.AppDatabase
 import com.honglu.typing.data.RecordEntity
 import com.honglu.typing.data.RecordDao
 import com.honglu.typing.engine.ScoreManager
@@ -14,8 +16,9 @@ import com.honglu.typing.engine.SoundManager
 import com.honglu.typing.engine.TypingEngine
 import com.honglu.typing.input.PinyinInputEngine
 import com.honglu.typing.util.DeviceUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sleep
+import kotlinx.coroutines.delay
 
 /**
  * ViewModel for Primary mode (finger training).
@@ -31,7 +34,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     private val soundManager = SoundManager(context)
     private val pinyinInputEngine = PinyinInputEngine()
     private val recordDao: RecordDao by lazy {
-        com.honglu.typing.data.AppDatabase.getInstance(context).recordDao()
+        AppDatabase.getInstance(context).recordDao()
     }
 
     // UI State LiveData
@@ -58,12 +61,22 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     // Timeout handling
     private var lastActivityTime = 0L
     private val timeoutSeconds = 5L
-    private var timeoutJob: kotlinx.coroutines.Job? = null
+    private var timeoutJob: Job? = null
+
+    // Intent extras (set by Activity before startNewSession)
+    private var pendingContentId: String? = null
+    private var pendingContentLang: String? = null
 
     init {
         loadDictionary()
-        startNewSession()
         startTimeoutWatcher()
+        // Don't auto-start — wait for Activity to set content
+    }
+
+    fun setPendingContent(contentId: String, lang: String) {
+        pendingContentId = contentId
+        pendingContentLang = lang
+        startNewSession()
     }
 
     private fun loadDictionary() {
@@ -74,19 +87,26 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** Start a new typing session with random English text */
+    /** Start a new typing session with random or selected content */
     fun startNewSession() {
-        val text = ContentRepository.getRandomEnglishText(context)
+        val text = if (pendingContentId != null) {
+            ContentRepository.getTextById(context, pendingContentId!!)
+        } else {
+            ContentRepository.getRandomEnglishText(context)
+        }
+        pendingContentId = null
+        pendingContentLang = null
         if (text.isNotEmpty()) {
             engine.start(text, TypingEngine.Mode.PRIMARY)
             resetPinyinState()
             updateUiFromEngine()
-            hintText.value = getString(R.string.primary_hint)
+            hintText.value = context.getString(R.string.primary_hint)
         }
     }
 
     /** Reset pinyin-related UI state */
     private fun resetPinyinState() {
+        pinyinAccumulator = ""
         selectingCandidates.value = false
         candidateList.value = emptyList()
         candidateIndex.value = 0
@@ -98,7 +118,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         lastActivityTime = System.currentTimeMillis()
         restartTimeoutWatcher()
 
-        val shift = (metaState and DeviceUtils.META_SHIFT_MASK) != 0
+        val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
         val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
         // Handle special keys first
@@ -113,8 +133,6 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             android.view.KeyEvent.KEYCODE_DEL -> {
                 if (engine.currentIndex > 0) {
                     engine.currentIndex--
-                    engine.correctKeystrokes++
-                    engine.totalKeystrokes--
                     updateUiFromEngine()
                 }
                 return true
@@ -134,7 +152,8 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         val isCorrect = engine.processKeyPress(char)
         // Update keyboard UI
         highlightedKey.value = engine.getNextExpectedChar()
-        pressedKeys.value = if (isCorrect) setOf(char.lowercaseChar()) else emptySet()
+        val lower = char.lowercaseChar()
+        pressedKeys.value = if (isCorrect) setOf(lower) else emptySet()
         // Play sound
         if (isCorrect) {
             soundManager.playCorrect()
@@ -152,49 +171,32 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
 
     /** Handle pinyin logic before falling back to English */
     private fun tryHandlePinyinKey(char: Char): Boolean {
-        if (!selectingCandidates.value) {
-            if (char in 'a'..'z') {
-                val pinyinAccumulator = (pinyinAccumulatorProperty.get() ?: "") + char
-                pinyinAccumulatorProperty.set(pinyinAccumulator)
-                if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
-                    showCandidates()
-                    return true
-                } else {
-                    // No suggestions, let it be treated as English letter
-                    return false
-                }
+        if (selectingCandidates.value != true && char in 'a'..'z') {
+            pinyinAccumulator += char
+            if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
+                showCandidates()
+                return true
             }
-        } else {
-            // Candidate selection mode
-            return when (char) {
-                // Not applicable; candidate selection uses DPAD/Enter/Number keys handled elsewhere
-                else -> false
-            }
+            // Accumulate but let English engine handle it too
         }
         return false
     }
 
-    // We need to store pinyin accumulator as a mutable variable; using a holder for simplicity
-    private val pinyinAccumulatorProperty = MutableLiveData<String>("")
-    init {
-        pinyinAccumulatorProperty.value = ""
-    }
+    private var pinyinAccumulator = ""
 
     private fun showCandidates() {
-        val suggestions = pinyinInputEngine.getSuggestions(pinyinAccumulatorProperty.value ?: "")
+        val suggestions = pinyinInputEngine.getSuggestions(pinyinAccumulator)
         if (suggestions.isNotEmpty()) {
             selectingCandidates.value = true
             candidateList.value = suggestions
             candidateIndex.value = 0
-            // Update hint
-            val candidate = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: ""
-            hintText.value = "Select candidate: [$candidate] Enter to confirm"
+            updateCandidateHint()
         }
     }
 
     /** Handle DPAD/Enter/Number keys for candidate selection */
     fun onCandidateKey(keyCode: Int): Boolean {
-        if (!selectingCandidates.value) return false
+        if (!(selectingCandidates.value ?: false)) return false
         return when (keyCode) {
             android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
                 candidateIndex.value = (candidateIndex.value ?: 0 - 1 + (candidateList.value ?: emptyList()).size) %
@@ -298,11 +300,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             )
             recordDao.insert(record)
         }
-        // Show completion dialog via LiveData event (could use a separate MutableLiveData<Unit>)
-        // For simplicity, we'll post a completion event via a MutableLiveData<Boolean>
-        // but we'll leave it to Activity to observe isComplete flag.
-        // We'll add a LiveData for completion event.
-        // For now, we just update UI; Activity can observe isComplete and show dialog.
+        completionEvent.value = Unit
     }
 
     // Timeout watcher

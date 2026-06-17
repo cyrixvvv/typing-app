@@ -66,7 +66,7 @@ class ContentSelectActivity : AppCompatActivity() {
             isClickable = true
             setOnClickListener {
                 val intent = Intent(this@ContentSelectActivity, PrimaryModeActivity::class.java)
-                intent.putExtra("content_id", item.id)
+                intent.putExtra("content_id", item.compositeId)
                 intent.putExtra("content_lang", item.lang)
                 startActivity(intent)
             }

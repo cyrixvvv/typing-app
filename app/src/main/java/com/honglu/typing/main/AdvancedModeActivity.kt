@@ -4,7 +4,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.viewModels
+import androidx.activity.viewmodels.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.R
 import com.honglu.typing.databinding.ActivityAdvancedBinding
@@ -69,7 +69,7 @@ class AdvancedModeActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("练习完成！")
             .setMessage(
-                "WPM: %.0f\nCPM: %.0f\n正确率: %.0f%%\n得分: %d\n类型: %s"
+                "WPM: %.0f\\nCPM: %.0f\\n正确率: %.0f%%\\n得分: %d\\n类型: %s"
                     .format(wpm, cpm, accuracy, score, typeStr)
             )
             .setPositiveButton("再来一次") { _, _ ->

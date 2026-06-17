@@ -5,11 +5,11 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import android.view.animation.DecelerateInterpolator
-import com.honglu.typing.engine.TypingEngine
+import android.view.animation.AnticipateOvershootInterpolator
 
 /**
  * Data model for a single keyboard key.
@@ -264,7 +264,7 @@ class KeyboardView @JvmOverloads constructor(
         val duration = 500L
 
         val animator = ValueAnimator.ofFloat(0f, 1f).setDuration(duration)
-        animator.interpolator = android.view.animation.AnticipateOvershootInterpolator()
+        animator.interpolator = AnticipateOvershootInterpolator()
         animator.addUpdateListener { animation ->
             flashColor = if (animation.animatedFraction > 0.5f) Color.RED else Color.WHITE
             postInvalidate()

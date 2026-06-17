@@ -2,11 +2,13 @@ package com.honglu.typing.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.view.KeyEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.honglu.typing.R
 import com.honglu.typing.data.ContentRepository
+import com.honglu.typing.data.AppDatabase
 import com.honglu.typing.data.RecordEntity
 import com.honglu.typing.data.RecordDao
 import com.honglu.typing.engine.ScoreManager
@@ -14,8 +16,9 @@ import com.honglu.typing.engine.SoundManager
 import com.honglu.typing.engine.TypingEngine
 import com.honglu.typing.input.PinyinInputEngine
 import com.honglu.typing.util.DeviceUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sleep
+import kotlinx.coroutines.delay
 
 /**
  * ViewModel for Advanced mode (WPM/CPM test).
@@ -30,7 +33,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     private val soundManager = SoundManager(context)
     private val pinyinInputEngine = PinyinInputEngine()
     private val recordDao: RecordDao by lazy {
-        com.honglu.typing.data.AppDatabase.getInstance(context).recordDao()
+        AppDatabase.getInstance(context).recordDao()
     }
 
     // UI State LiveData
@@ -51,7 +54,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     // Timeout handling
     private var lastActivityTime = 0L
     private val timeoutSeconds = 5L
-    private var timeoutJob: kotlinx.coroutines.Job? = null
+    private var timeoutJob: Job? = null
 
     init {
         loadDictionary()
@@ -77,7 +80,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         if (text.isNotEmpty()) {
             engine.start(text, TypingEngine.Mode.ADVANCED)
             updateUiFromEngine()
-            hintText.value = getString(R.string.primary_hint) // reuse same hint
+            hintText.value = context.getString(R.string.primary_hint) // reuse same hint
         }
     }
 
@@ -87,7 +90,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         lastActivityTime = System.currentTimeMillis()
         restartTimeoutWatcher()
 
-        val shift = (metaState and DeviceUtils.META_SHIFT_MASK) != 0
+        val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
         val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
         // Handle special keys first
@@ -109,8 +112,6 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
             android.view.KeyEvent.KEYCODE_DEL -> {
                 if (engine.currentIndex > 0) {
                     engine.currentIndex--
-                    engine.correctKeystrokes++
-                    engine.totalKeystrokes--
                     updateUiFromEngine()
                 }
                 return true
@@ -164,9 +165,9 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     private fun updateEncouragement() {
         val streak = engine.consecutiveCorrect
         val encourage = when {
-            streak >= 50 -> getString(R.string.encourage_excellent)
-            streak >= 20 -> getString(R.string.encourage_good)
-            streak >= 10 -> getString(R.string.encourage_keep)
+            streak >= 50 -> context.getString(R.string.encourage_excellent)
+            streak >= 20 -> context.getString(R.string.encourage_good)
+            streak >= 10 -> context.getString(R.string.encourage_keep)
             else -> ""
         }
         encouragement.value = encourage
@@ -189,6 +190,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
             )
             recordDao.insert(record)
         }
+        completionEvent.value = Unit
     }
 
     // Timeout watcher

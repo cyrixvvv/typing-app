@@ -4,7 +4,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.viewModels
+import androidx.activity.viewmodels.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.R
 import com.honglu.typing.databinding.ActivityPrimaryBinding
@@ -21,6 +21,15 @@ class PrimaryModeActivity : AppCompatActivity() {
         setContentView(binding.root)
         supportActionBar?.hide()
 
+        // Pass content from ContentSelectActivity if specified
+        val contentId = intent.getStringExtra("content_id")
+        val contentLang = intent.getStringExtra("content_lang")
+        if (contentId != null) {
+            viewModel.setPendingContent(contentId, contentLang ?: "English")
+        } else {
+            viewModel.startNewSession()
+        }
+
         // Back button
         binding.tvBack.setOnClickListener { finish() }
 
@@ -28,11 +37,10 @@ class PrimaryModeActivity : AppCompatActivity() {
         observeViewModel()
 
         // KeyboardView bindings
-        binding.keyboardView.highlightedKey = viewModel.highlightedKey.value
-        binding.keyboardView.pressedKeys = viewModel.pressedKeys.value
+        binding.keyboardView.highlightedKey = viewModel.highlightedKey.value ?: null
+        binding.keyboardView.pressedKeys = viewModel.pressedKeys.value ?: emptySet()
         viewModel.highlightedKey.observe(this) { binding.keyboardView.highlightedKey = it }
-        viewModel.pressedKeys.observe(this) { binding.keyboardView.pressedKeys = it }
-        viewModel.progress.observe(this) { binding.keyboardView.progress = it } // if we add progress to KeyboardView? Not needed.
+        viewModel.pressedKeys.observe(this) { binding.keyboardView.pressedKeys = it ?: emptySet() }
         // Flash active
         viewModel.flashActive.observe(this) { active ->
             if (active) {
@@ -90,7 +98,7 @@ class PrimaryModeActivity : AppCompatActivity() {
         val handled = viewModel.onKeyDown(event.keyCode, event.metaState)
         if (handled) return true
         // Handle candidate keys if selecting
-        if (viewModel.selectingCandidates.value) {
+        if (viewModel.selectingCandidates.value ?: false) {
             val candHandled = viewModel.onCandidateKey(event.keyCode)
             if (candHandled) return true
         }
@@ -103,7 +111,7 @@ class PrimaryModeActivity : AppCompatActivity() {
         val score = viewModel.score.value
         AlertDialog.Builder(this)
             .setTitle("练习完成！")
-            .setMessage("WPM: %.0f\n正确率: %.0f%%\n得分: %d".format(wpm, accuracy, score))
+            .setMessage("WPM: %.0f\\n正确率: %.0f%%\\n得分: %d".format(wpm, accuracy, score))
             .setPositiveButton("再来一次") { _, _ ->
                 viewModel.startNewSession()
             }

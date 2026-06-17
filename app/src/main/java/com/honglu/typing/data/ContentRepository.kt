@@ -9,76 +9,83 @@ import org.json.JSONObject
  */
 object ContentRepository {
 
+    private fun loadItems(context: Context, assetPath: String): List<ContentItem> {
+        return try {
+            val json = context.assets.open(assetPath).bufferedReader().use { it.readText() }
+            val root = JSONObject(json)
+            val arr = root.getJSONArray("items")
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                ContentItem(
+                    id = obj.getInt("id"),
+                    title = obj.getString("title"),
+                    text = obj.getString("text")
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     /**
      * Get a random English text from the built-in collection.
      */
     fun getRandomEnglishText(context: Context): String {
-        return getRandomText(context, "contents_en.json")
+        val items = loadItems(context, "contents_en.json")
+        if (items.isEmpty()) return "The quick brown fox jumps over the lazy dog."
+        return items.random().text
     }
 
     /**
      * Get a random Chinese text from the built-in collection.
      */
     fun getRandomChineseText(context: Context): String {
-        return getRandomText(context, "contents_cn.json")
+        val items = loadItems(context, "contents_cn.json")
+        if (items.isEmpty()) return "床前明月光。"
+        return items.random().text
     }
 
     /**
-     * Get text by ID and language.
+     * Get text by composite id like "en_1", "cn_5".
      */
-    fun getTextById(context: Context, lang: String, id: Int): String {
-        return getByIdFromFile(context, lang, id)
+    fun getTextById(context: Context, contentId: String): String {
+        val parts = contentId.split("_")
+        if (parts.size != 2) return "Loading..."
+        val assetFile = when (parts[0]) {
+            "en" -> "contents_en.json"
+            "cn" -> "contents_cn.json"
+            else -> return "Loading..."
+        }
+        val id = parts[1].toIntOrNull() ?: return "Loading..."
+        val items = loadItems(context, assetFile)
+        return items.find { it.id == id }?.text ?: "Loading..."
     }
 
     /**
-     * List all available content titles.
+     * List all available content titles grouped by language.
      */
     fun listAvailableContent(context: Context): List<ContentItem> {
-        return listOf(
-            ContentItem("en_1", "English", "The Quick Brown Fox"),
-            ContentItem("en_2", "English", "To be or not to be"),
-            ContentItem("cn_1", "Chinese", "春晓 - 孟浩然"),
-            ContentItem("cn_2", "Chinese", "静夜思 - 李白")
-        )
-    }
-
-    private fun getRandomText(context: Context, assetPath: String): String {
-        try {
-            val json = context.assets.open(assetPath).bufferedReader().use { it.readText() }
-            val root = JSONObject(json)
-            val items = root.getJSONArray("items")
-
-            // Pick a random item
-            val idx = (0 until items.length()).random()
-            val item = items.getJSONObject(idx)
-            return item.getString("text")
-        } catch (e: Exception) {
-            // Fallback: return a default text
-            return "The quick brown fox jumps over the lazy dog."
+        val enItems = loadItems(context, "contents_en.json").map {
+            it.copy(lang = "English")
         }
-    }
-
-    private fun getByIdFromFile(context: Context, lang: String, id: Int): String {
-        try {
-            val json = context.assets.open("contents_${if (lang == "cn") "cn" else "en"}.json").bufferedReader().use { it.readText() }
-            val root = JSONObject(json)
-            val items = root.getJSONArray("items")
-
-            for (i in 0 until items.length()) {
-                val obj = items.getJSONObject(i)
-                if (obj.getInt("id") == id) {
-                    return obj.getString("text")
-                }
-            }
-        } catch (e: Exception) {
-            // Fallback
+        val cnItems = loadItems(context, "contents_cn.json").map {
+            it.copy(lang = "Chinese")
         }
-        return "Loading..."
+        return enItems + cnItems
     }
 }
 
+/**
+ * Content item data class.
+ * id is the numeric id from the JSON asset.
+ * For the UI, composite id string is derived as "{lang_prefix}_{id}".
+ */
 data class ContentItem(
-    val id: String,
-    val lang: String,
-    val title: String
-)
+    val id: Int,
+    val title: String,
+    val text: String = "",
+    val lang: String = ""
+) {
+    /** Composite id used in Intents, e.g. "en_1", "cn_5" */
+    val compositeId: String get() = "${if (lang == "Chinese") "cn" else "en"}_$id"
+}
