@@ -206,6 +206,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
 
         // Chinese pinyin input
         if (isChineseContent && char in 'a'..'z') {
+            if (!engine.isRunning) engine.markStarted()
             autoSkipPunctuation()
             pinyinAccumulator += char
             pinyinBuffer.value = pinyinAccumulator
