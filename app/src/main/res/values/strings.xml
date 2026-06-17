@@ -7,6 +7,7 @@
     <string name="menu_advanced">高级模式测试</string>
     <string name="menu_content">内容选择</string>
     <string name="menu_settings">设置</string>
+    <string name="menu_exit">退出</string>
 
     <!-- Primary mode -->
     <string name="primary_back">返回</string>
@@ -20,6 +21,8 @@
     <string name="advanced_accuracy">正确率</string>
     <string name="advanced_errors">错误</string>
     <string name="advanced_score">得分</string>
+    <string name="advanced_total">总分</string>
+    <string name="advanced_total_score">总分: %d</string>
 
     <!-- Encouragement messages -->
     <string name="encourage_excellent">太棒了！&#160;继续加油！</string>

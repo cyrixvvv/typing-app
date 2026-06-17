@@ -11,7 +11,6 @@ import com.honglu.typing.data.ContentRepository
 import com.honglu.typing.data.AppDatabase
 import com.honglu.typing.data.RecordEntity
 import com.honglu.typing.data.RecordDao
-import com.honglu.typing.engine.ScoreManager
 import com.honglu.typing.engine.SoundManager
 import com.honglu.typing.engine.TypingEngine
 import com.honglu.typing.input.PinyinInputEngine
@@ -20,12 +19,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
+enum class ContentMode(val label: String) {
+    ENGLISH("英文"),
+    ENGLISH_NUMBERS("英文+数字"),
+    MIXED_CASE("大小写"),
+    CHINESE("中文")
+}
+
 class AdvancedViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context: Context get() = getApplication()
+    private val prefs = context.getSharedPreferences("advanced_prefs", Context.MODE_PRIVATE)
 
     private val engine = TypingEngine()
-    private val scoreManager = ScoreManager(context)
     private val soundManager = SoundManager(context)
     private val pinyinInputEngine = PinyinInputEngine()
     private val recordDao: RecordDao by lazy {
@@ -40,17 +46,16 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     val cpm = MutableLiveData<Float>(0f)
     val accuracy = MutableLiveData<Float>(100f)
     val score = MutableLiveData<Int>(0)
-    val highlightedKey = MutableLiveData<Char?>(null)
-    val pressedKeys = MutableLiveData<Set<Char>>(emptySet())
     val progress = MutableLiveData<Float>(0f)
-    val flashActive = MutableLiveData<Boolean>(false)
-    val encouragement = MutableLiveData<String>("")
     val hintText = MutableLiveData<String>(context.getString(R.string.primary_hint))
     val completionEvent = MutableLiveData<Unit>()
-
-    val totalKeystrokes = MutableLiveData<Int>(0)
-    val errorKeystrokes = MutableLiveData<Int>(0)
     val wrongKeyFlash = MutableLiveData<Boolean>(false)
+
+    // Content mode
+    val contentMode = MutableLiveData(ContentMode.ENGLISH)
+
+    // Total score (accumulated across sessions, persisted)
+    val totalScore = MutableLiveData(prefs.getInt("total_score", 0))
 
     // Pinyin UI
     val selectingCandidates = MutableLiveData<Boolean>(false)
@@ -58,17 +63,12 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     val candidateIndex = MutableLiveData<Int>(0)
     val pinyinBuffer = MutableLiveData<String>("")
 
-    var autoAdvance = false
-
     private var lastActivityTime = 0L
     private val timeoutSeconds = 5L
     private var timeoutJob: Job? = null
-    private var clearKeysJob: Job? = null
     private var wrongFlashJob: Job? = null
     private var isChineseContent = false
     private var pinyinAccumulator = ""
-    private var pendingContentId: String? = null
-    private var pendingContentLang: String? = null
 
     init {
         loadDictionary()
@@ -80,42 +80,32 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         try { pinyinInputEngine.loadDictionary(context, "pinyin_dict.json") } catch (_: Exception) { }
     }
 
-    fun setPendingContent(contentId: String, lang: String) {
-        pendingContentId = contentId
-        pendingContentLang = lang
-        isChineseContent = (lang == "Chinese")
-        autoAdvance = (contentId == "random_en" || contentId == "random_cn")
+    fun switchContentMode(mode: ContentMode) {
+        if (contentMode.value == mode) return
+        contentMode.value = mode
+        isChineseContent = (mode == ContentMode.CHINESE)
         startNewSession()
     }
 
     fun startNewSession() {
-        val text = when {
-            pendingContentId == "random_en" -> ContentRepository.getRandomEnglishText(context)
-            pendingContentId == "random_cn" -> ContentRepository.getRandomChineseText(context)
-            pendingContentId != null -> ContentRepository.getTextById(context, pendingContentId!!)
-            else -> if ((0..1).random() == 0) ContentRepository.getRandomEnglishText(context)
-                    else ContentRepository.getRandomChineseText(context)
-        }
-        pendingContentId = null
-        pendingContentLang = null
+        val text = generateContent(contentMode.value ?: ContentMode.ENGLISH)
         if (text.isNotEmpty()) {
-            isChineseContent = text.any { it in '一'..'鿿' }
+            isChineseContent = (contentMode.value == ContentMode.CHINESE)
             engine.start(text, TypingEngine.Mode.ADVANCED)
             resetPinyinState()
             updateUiFromEngine()
-            hintText.value = context.getString(R.string.primary_hint)
+            hintText.value = "按空格键开始"
             wrongKeyFlash.value = false
-            totalKeystrokes.value = 0
-            errorKeystrokes.value = 0
         }
     }
 
-    private fun resetPinyinState() {
-        pinyinAccumulator = ""
-        pinyinBuffer.value = ""
-        selectingCandidates.value = false
-        candidateList.value = emptyList()
-        candidateIndex.value = 0
+    private fun generateContent(mode: ContentMode): String {
+        return when (mode) {
+            ContentMode.ENGLISH -> ContentRepository.getRandomEnglishText(context)
+            ContentMode.ENGLISH_NUMBERS -> numberTexts.random()
+            ContentMode.MIXED_CASE -> mixedCaseTexts.random()
+            ContentMode.CHINESE -> ContentRepository.getRandomChineseText(context)
+        }
     }
 
     fun onKeyDown(keyCode: Int, metaState: Int): Boolean {
@@ -123,12 +113,25 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         restartTimeoutWatcher()
 
         when (keyCode) {
-            KeyEvent.KEYCODE_SPACE,
-            KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_DPAD_CENTER -> {
+            KeyEvent.KEYCODE_SPACE -> {
                 if (selectingCandidates.value == true) {
                     confirmCandidate(); return true
                 }
+                if (!engine.isRunning && !engine.isComplete()) {
+                    engine.markStarted()
+                    hintText.value = ""
+                    return true
+                }
+                val isCorrect = engine.processKeyPress(' ')
+                if (isCorrect) { soundManager.playCorrect(); wrongKeyFlash.value = false }
+                else { soundManager.playWrong(); wrongKeyFlash.value = true; scheduleClearWrongFlash() }
+                updateUiFromEngine()
+                if (engine.isComplete()) handleCompletion()
+                return true
+            }
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
+                if (selectingCandidates.value == true) { confirmCandidate(); return true }
                 if (!engine.isRunning && !engine.isComplete()) {
                     engine.markStarted()
                     hintText.value = ""
@@ -172,33 +175,21 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
             return true
         }
 
-        // English: pass to engine
+        // Normal typing
         val isCorrect = engine.processKeyPress(char)
-
-        highlightedKey.value = engine.getNextExpectedChar()
-        val lower = char.lowercaseChar()
-        pressedKeys.value = setOf(lower)
-        scheduleClearPressedKeys()
-        totalKeystrokes.value = engine.totalKeystrokes
-        errorKeystrokes.value = engine.wrongKeystrokes
-
         if (isCorrect) { soundManager.playCorrect(); wrongKeyFlash.value = false }
         else { soundManager.playWrong(); wrongKeyFlash.value = true; scheduleClearWrongFlash() }
-
         updateUiFromEngine()
         if (engine.isComplete()) handleCompletion()
         return true
-    }
-
-    private fun scheduleClearPressedKeys() {
-        clearKeysJob?.cancel()
-        clearKeysJob = viewModelScope.launch { delay(180); pressedKeys.value = emptySet() }
     }
 
     private fun scheduleClearWrongFlash() {
         wrongFlashJob?.cancel()
         wrongFlashJob = viewModelScope.launch { delay(300); wrongKeyFlash.value = false }
     }
+
+    // --- Pinyin ---
 
     private fun showCandidates() {
         val suggestions = pinyinInputEngine.getSuggestions(pinyinAccumulator)
@@ -261,6 +252,16 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         resetPinyinState(); hintText.value = ""
     }
 
+    private fun resetPinyinState() {
+        pinyinAccumulator = ""
+        pinyinBuffer.value = ""
+        selectingCandidates.value = false
+        candidateList.value = emptyList()
+        candidateIndex.value = 0
+    }
+
+    // --- Scoring ---
+
     private fun updateUiFromEngine() {
         currentText.value = engine.currentText
         currentIndex.value = engine.currentIndex
@@ -269,9 +270,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         cpm.value = engine.calculateCpm()
         accuracy.value = engine.calculateAccuracy()
         score.value = calculateScore()
-        highlightedKey.value = engine.getNextExpectedChar()
         progress.value = engine.getProgress()
-        updateEncouragement()
     }
 
     private fun calculateScore(): Int {
@@ -280,23 +279,23 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
                 engine.consecutiveCorrect * 2)
     }
 
-    private fun updateEncouragement() {
-        encouragement.value = when {
-            engine.consecutiveCorrect >= 50 -> context.getString(R.string.encourage_excellent)
-            engine.consecutiveCorrect >= 20 -> context.getString(R.string.encourage_good)
-            engine.consecutiveCorrect >= 10 -> context.getString(R.string.encourage_keep)
-            else -> ""
-        }
+    private fun addToTotalScore(sessionScore: Int) {
+        val current = prefs.getInt("total_score", 0)
+        val newTotal = current + sessionScore
+        prefs.edit().putInt("total_score", newTotal).apply()
+        totalScore.value = newTotal
     }
 
     private fun handleCompletion() {
+        val sessionScore = calculateScore()
+        addToTotalScore(sessionScore)
         viewModelScope.launch {
             val isChinese = engine.currentText.any { it in '一'..'鿿' }
             recordDao.insert(RecordEntity(
                 mode = "advanced",
                 contentType = if (isChinese) "cn_paragraph" else "en_short",
                 wpm = engine.calculateWpm(), cpm = engine.calculateCpm(),
-                accuracy = engine.calculateAccuracy(), score = calculateScore(),
+                accuracy = engine.calculateAccuracy(), score = sessionScore,
                 totalKeystrokes = engine.totalKeystrokes,
                 correctKeystrokes = engine.correctKeystrokes,
                 date = System.currentTimeMillis()
@@ -306,28 +305,75 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun nextContent() {
-        if (autoAdvance) {
-            pendingContentId = if (isChineseContent) "random_cn" else "random_en"
-            pendingContentLang = if (isChineseContent) "Chinese" else "English"
-        }
         startNewSession()
     }
+
+    // --- Timeout ---
 
     private fun startTimeoutWatcher() {
         timeoutJob?.cancel()
         timeoutJob = viewModelScope.launch {
             while (true) {
                 delay(500)
-                val running = engine.isRunning && !engine.isComplete()
-                flashActive.value = running && engine.isTimeout(lastActivityTime, timeoutSeconds)
             }
         }
     }
+
     private fun restartTimeoutWatcher() { lastActivityTime = System.currentTimeMillis() }
 
     override fun onCleared() {
         super.onCleared()
-        timeoutJob?.cancel(); clearKeysJob?.cancel(); wrongFlashJob?.cancel()
+        timeoutJob?.cancel(); wrongFlashJob?.cancel()
         soundManager.cleanup()
+    }
+
+    // --- Content Pools ---
+
+    companion object {
+        private val numberTexts = listOf(
+            "Room 304 is on the 2nd floor with 15 chairs and 3 tables.",
+            "The access code is 5421 and the backup pin is 9876.",
+            "Chapter 7 has 3 sections covering pages 42 to 89.",
+            "Mix 2 cups of flour with 3 eggs and 1 cup of sugar.",
+            "Flight AC2016 departs at 4:30 PM from terminal 12.",
+            "Population grew from 7.8 billion in 2020 to 8.5 billion in 2030.",
+            "Score 98 out of 100 needs at least 36 correct answers out of 40.",
+            "Version 2.0 was released in 2024 with 3 new features and 12 bug fixes.",
+            "The package weighs 2.5 kg and costs 45 dollars and 99 cents.",
+            "Call 911 in an emergency or dial 0 for the operator.",
+            "The meeting starts at 3 PM in room 405 on the 4th floor.",
+            "There are 365 days in a year and 52 weeks in a year.",
+            "My phone number is 138 5555 0192 please call after 6 PM.",
+            "The answer to question 5 is on page 28 in section 3.",
+            "A decathlon has 10 events spread over 2 days of competition.",
+            "Store at negative 18 degrees Celsius for up to 6 months.",
+            "The marathon is 42 point 195 kilometers or 26 point 2 miles.",
+            "Line 9 of the code on page 3 contains a bug in the 4th parameter.",
+            "Train 127 departs from platform 5 at 7:45 AM every weekday.",
+            "The 3 little pigs built houses of straw sticks and bricks."
+        )
+
+        private val mixedCaseTexts = listOf(
+            "The Great Wall of China is one of the Seven Wonders of the World.",
+            "Shakespeare wrote Hamlet in London at the Globe Theatre.",
+            "Mount Everest is the tallest mountain on Earth at 8848 meters.",
+            "Einstein developed the Theory of Relativity in 1915 in Berlin.",
+            "Amazon River flows through Brazil Peru and Colombia in South America.",
+            "Microsoft Windows was first released in 1985 by Bill Gates.",
+            "Da Vinci painted the Mona Lisa in the Louvre Museum in Paris.",
+            "The Pacific Ocean is the largest and deepest ocean on Earth.",
+            "Harry Potter was written by J.K. Rowling in the United Kingdom.",
+            "Mars is called the Red Planet with the tallest volcano Olympus Mons.",
+            "Newton discovered Gravity when an Apple fell from a Tree.",
+            "The Sahara Desert in Africa is the largest hot Desert on Earth.",
+            "Beethoven composed the Fifth Symphony while completely deaf.",
+            "Tokyo is the Capital of Japan and the largest City in the World.",
+            "The Titanic sank on its First Voyage in April 1912.",
+            "Galileo used his Telescope to discover the Moons of Jupiter.",
+            "The Nile River in Egypt is the longest River in the World.",
+            "Einstein won the Nobel Prize in Physics for his work on Light.",
+            "The Amazon Rainforest produces about 20 percent of the World Oxygen.",
+            "Leonardo da Vinci was a Painter Inventor and Engineer from Italy."
+        )
     }
 }

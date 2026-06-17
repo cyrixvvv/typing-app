@@ -50,12 +50,6 @@
             android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
-        <!-- Content selection (LeanBack) -->
-        <activity
-            android:name=".main.ContentSelectActivity"
-            android:exported="false"
-            android:screenOrientation="landscape" />
-
         <!-- Settings activity -->
         <activity
             android:name=".main.SettingsActivity"

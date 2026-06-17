@@ -119,7 +119,27 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         restartTimeoutWatcher()
 
         when (keyCode) {
-            KeyEvent.KEYCODE_SPACE,
+            KeyEvent.KEYCODE_SPACE -> {
+                if (selectingCandidates.value == true) {
+                    confirmCandidate()
+                    return true
+                }
+                if (!engine.isRunning && !engine.isComplete()) {
+                    engine.markStarted()
+                    hintText.value = ""
+                    return true
+                }
+                // Process space character
+                val isCorrect = engine.processKeyPress(' ')
+                highlightedKey.value = engine.getNextExpectedChar()
+                pressedKeys.value = setOf(' ')
+                scheduleClearPressedKeys()
+                if (isCorrect) { soundManager.playCorrect(); wrongKeyFlash.value = false }
+                else { soundManager.playWrong(); wrongKeyFlash.value = true; scheduleClearWrongFlash() }
+                updateUiFromEngine()
+                if (engine.isComplete()) handleCompletion()
+                return true
+            }
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_DPAD_CENTER -> {
                 if (selectingCandidates.value == true) {

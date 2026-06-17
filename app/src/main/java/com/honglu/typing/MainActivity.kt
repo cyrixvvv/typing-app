@@ -5,14 +5,9 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.honglu.typing.databinding.ActivityMainMenuBinding
 import com.honglu.typing.main.AdvancedModeActivity
-import com.honglu.typing.main.ContentSelectActivity
 import com.honglu.typing.main.PrimaryModeActivity
 import com.honglu.typing.main.SettingsActivity
 
-/**
- * Main entry activity. Shows a simple menu and dispatches to sub-activities.
- * Designed for TV (LeanBack landscape) but works on any screen.
- */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainMenuBinding
@@ -32,12 +27,12 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, AdvancedModeActivity::class.java))
         }
 
-        binding.btnContent.setOnClickListener {
-            startActivity(Intent(this, ContentSelectActivity::class.java))
-        }
-
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        binding.btnExit.setOnClickListener {
+            finishAffinity()
         }
     }
 }

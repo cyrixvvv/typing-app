@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Main menu layout: weight-based vertical distribution, always shows all 4 buttons -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -24,9 +23,9 @@
         android:textColor="@color/text_primary"
         android:textSize="36sp"
         android:textStyle="bold"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="32dp" />
 
-    <!-- Menu buttons: weight=0 is fixed height, no overflow risk -->
+    <!-- Menu buttons -->
     <Button
         android:id="@+id/btn_primary"
         android:layout_width="320dp"
@@ -44,20 +43,21 @@
         android:layout_marginBottom="8dp" />
 
     <Button
-        android:id="@+id/btn_content"
-        android:layout_width="320dp"
-        android:layout_height="56dp"
-        android:text="@string/menu_content"
-        android:textSize="22sp"
-        android:layout_marginBottom="8dp" />
-
-    <Button
         android:id="@+id/btn_settings"
         android:layout_width="320dp"
         android:layout_height="56dp"
         android:text="@string/menu_settings"
         android:textSize="22sp"
-        android:backgroundTint="@color/bg_key" />
+        android:layout_marginBottom="8dp" />
+
+    <!-- Separate exit button -->
+    <Button
+        android:id="@+id/btn_exit"
+        android:layout_width="320dp"
+        android:layout_height="56dp"
+        android:text="@string/menu_exit"
+        android:textSize="22sp"
+        android:backgroundTint="@color/color_wrong" />
 
     <!-- Bottom spacer -->
     <View

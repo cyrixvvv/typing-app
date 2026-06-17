@@ -126,6 +126,17 @@ class PrimaryModeActivity : AppCompatActivity() {
             ssb.setSpan(ForegroundColorSpan(ContextCompat.getColor(this, R.color.text_secondary)), index + 1, fullText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         binding.tvDisplayText.text = ssb
+
+        // Auto-scroll: keep current character centered horizontally
+        binding.tvDisplayText.post {
+            val layout = binding.tvDisplayText.layout ?: return@post
+            val line = layout.getLineForOffset(index.coerceAtMost(layout.text.length - 1))
+            val x = layout.getPrimaryHorizontal(index.coerceAtMost(layout.text.length - 1))
+            val targetScroll = (x - binding.tvDisplayText.width / 2f).toInt().coerceAtLeast(0)
+            if (targetScroll != binding.tvDisplayText.scrollX) {
+                binding.tvDisplayText.scrollTo(targetScroll, 0)
+            }
+        }
     }
 
     private fun updateCandidateHint() {
@@ -136,11 +147,22 @@ class PrimaryModeActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        // Intercept SPACE unconditionally to prevent Android TV focus system theft
+        if (keyCode == KeyEvent.KEYCODE_SPACE) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                val handled = viewModel.onKeyDown(keyCode, event.metaState)
+                if (!handled && viewModel.selectingCandidates.value == true) {
+                    viewModel.onCandidateKey(keyCode)
+                }
+            }
+            return true
+        }
         if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
-        if (event.keyCode == KeyEvent.KEYCODE_ESCAPE) { finish(); return true }
-        val handled = viewModel.onKeyDown(event.keyCode, event.metaState)
+        if (keyCode == KeyEvent.KEYCODE_ESCAPE) { finish(); return true }
+        val handled = viewModel.onKeyDown(keyCode, event.metaState)
         if (handled) return true
-        if (viewModel.selectingCandidates.value == true) return viewModel.onCandidateKey(event.keyCode)
+        if (viewModel.selectingCandidates.value == true) return viewModel.onCandidateKey(keyCode)
         return super.dispatchKeyEvent(event)
     }
 

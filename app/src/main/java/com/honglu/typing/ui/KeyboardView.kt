@@ -117,15 +117,26 @@ class KeyboardView @JvmOverloads constructor(
         }
         val maxRowKeyCount = ROWS.maxOf { it.size }
         keyGap = maxOf(4f, usableWidth * 0.01f)
-        keyWidth = (usableWidth - keyGap * (maxRowKeyCount + 1)) / maxRowWidthRatio
-        keyHeight = maxOf(keyWidth * 0.55f, 24f)
+        keyWidth = (usableWidth - keyGap * (maxRowKeyCount - 1)) / maxRowWidthRatio
+
+        // Height from width ratio
+        val h = maxOf(keyWidth * 0.55f, 24f)
+        // Constrain by available height so all 5 rows always fit
+        val totalRows = ROWS.size
+        val maxTotalHeight = height * 0.98f
+        val maxH = (maxTotalHeight - keyGap * (totalRows - 1)) / totalRows
+        keyHeight = minOf(h, maxH)
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val totalRows = ROWS.size
         val totalHeight = totalRows * keyHeight + (totalRows - 1) * keyGap
-        var rowStartY = (height - totalHeight) / 2f
+        val rowStartY = if (totalHeight <= height) {
+            (height - totalHeight) / 2f  // center if fits
+        } else {
+            0f  // align top if too tall
+        }
 
         ROWS.forEachIndexed { rowIndex, row ->
             val y = rowStartY + rowIndex * (keyHeight + keyGap)
