@@ -21,6 +21,9 @@ class TypingEngine {
 
     var mode: Mode = Mode.PRIMARY
 
+    // When true, character matching is case-sensitive (used by mixed-case mode)
+    var caseSensitive = false
+
     // Stats
     var totalKeystrokes = 0
         internal set
@@ -58,7 +61,11 @@ class TypingEngine {
         totalKeystrokes++
 
         val expected = currentText[currentIndex]
-        val isCorrect = (key.lowercaseChar() == expected.lowercaseChar())
+        val isCorrect = if (caseSensitive) {
+            key == expected
+        } else {
+            key.lowercaseChar() == expected.lowercaseChar()
+        }
 
         if (isCorrect) {
             correctKeystrokes++

@@ -70,7 +70,7 @@
                 android:id="@+id/tv_mode_en_num"
                 android:layout_width="100dp"
                 android:layout_height="40dp"
-                android:text="英文+数字"
+                android:text="英数"
                 android:textColor="@color/text_secondary"
                 android:textSize="@dimen/text_size_hint"
                 android:gravity="center"
@@ -254,7 +254,7 @@
         android:max="100"
         android:progress="0" />
 
-    <!-- Full-height text display area (single-line typewriter scroll) -->
+    <!-- Multi-line text display (wraps naturally, no scrolling) -->
     <TextView
         android:id="@+id/tv_display_text"
         android:layout_width="match_parent"
@@ -263,8 +263,7 @@
         android:textColor="@color/text_primary"
         android:textSize="42sp"
         android:gravity="center_vertical"
-        android:scrollHorizontally="true"
-        android:singleLine="true"
+        android:lineSpacingExtra="8dp"
         android:padding="12dp"
         android:text="准备就绪" />
 

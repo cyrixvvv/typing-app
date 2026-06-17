@@ -38,7 +38,7 @@ class PrimaryModeActivity : AppCompatActivity() {
         if (contentId != null) {
             viewModel.setPendingContent(contentId, contentLang ?: "English")
         } else {
-            viewModel.startNewSession()
+            viewModel.setPendingContent("random_en", "English")
         }
 
         binding.tvBack.setOnClickListener { finish() }
@@ -66,14 +66,27 @@ class PrimaryModeActivity : AppCompatActivity() {
         viewModel.score.observe(this) { binding.tvScore.text = "得分: %d".format(it) }
         viewModel.progress.observe(this) { binding.pbProgress.progress = (it * 100).toInt() }
 
-        // Hint / encouragement
+        // Hint / encouragement (visibility controlled by pinyin observer below)
         viewModel.hintText.observe(this) { binding.tvHint.text = it }
-        viewModel.encouragement.observe(this) { binding.tvEncourage.text = it }
 
-        // Pinyin buffer display
+        // Pinyin buffer display (hidden when empty)
+        binding.tvPinyinBuffer.visibility = android.view.View.GONE
+        binding.tvEncourage.visibility = android.view.View.GONE
         viewModel.pinyinBuffer.observe(this) { buf ->
-            if (buf.isNotEmpty()) binding.tvPinyinBuffer.text = buf
-            else binding.tvPinyinBuffer.text = ""
+            if (buf.isNotEmpty()) {
+                binding.tvPinyinBuffer.text = buf
+                binding.tvPinyinBuffer.visibility = android.view.View.VISIBLE
+            } else {
+                binding.tvPinyinBuffer.visibility = android.view.View.GONE
+            }
+        }
+        viewModel.encouragement.observe(this) { msg ->
+            if (msg.isNotEmpty()) {
+                binding.tvEncourage.text = msg
+                binding.tvEncourage.visibility = android.view.View.VISIBLE
+            } else {
+                binding.tvEncourage.visibility = android.view.View.GONE
+            }
         }
 
         // Wrong key flash
@@ -126,23 +139,13 @@ class PrimaryModeActivity : AppCompatActivity() {
             ssb.setSpan(ForegroundColorSpan(ContextCompat.getColor(this, R.color.text_secondary)), index + 1, fullText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         binding.tvDisplayText.text = ssb
-
-        // Auto-scroll: keep current character centered horizontally
-        binding.tvDisplayText.post {
-            val layout = binding.tvDisplayText.layout ?: return@post
-            val line = layout.getLineForOffset(index.coerceAtMost(layout.text.length - 1))
-            val x = layout.getPrimaryHorizontal(index.coerceAtMost(layout.text.length - 1))
-            val targetScroll = (x - binding.tvDisplayText.width / 2f).toInt().coerceAtLeast(0)
-            if (targetScroll != binding.tvDisplayText.scrollX) {
-                binding.tvDisplayText.scrollTo(targetScroll, 0)
-            }
-        }
     }
 
     private fun updateCandidateHint() {
-        val idx = viewModel.candidateIndex.value ?: 0
         val list = viewModel.candidateList.value ?: emptyList()
-        val c = if (list.isNotEmpty()) list.getOrElse(idx) { "" } else ""
+        if (list.isEmpty()) return
+        val idx = viewModel.candidateIndex.value ?: 0
+        val c = list.getOrElse(idx) { "" }
         binding.tvHint.text = "候选: [$c] ← → 切换, Enter确认"
     }
 

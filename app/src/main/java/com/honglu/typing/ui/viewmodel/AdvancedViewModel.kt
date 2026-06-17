@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 
 enum class ContentMode(val label: String) {
     ENGLISH("英文"),
-    ENGLISH_NUMBERS("英文+数字"),
+    ENGLISH_NUMBERS("英数"),
     MIXED_CASE("大小写"),
     CHINESE("中文")
 }
@@ -91,6 +91,8 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         val text = generateContent(contentMode.value ?: ContentMode.ENGLISH)
         if (text.isNotEmpty()) {
             isChineseContent = (contentMode.value == ContentMode.CHINESE)
+            // Enable case-sensitive matching for mixed case mode
+            engine.caseSensitive = (contentMode.value == ContentMode.MIXED_CASE)
             engine.start(text, TypingEngine.Mode.ADVANCED)
             resetPinyinState()
             updateUiFromEngine()

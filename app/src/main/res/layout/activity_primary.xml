@@ -76,7 +76,7 @@
             android:textSize="@dimen/text_size_stats" />
     </LinearLayout>
 
-    <!-- Text display area (scrolls horizontally as you type) -->
+    <!-- Multi-line text display area (fills available space, wraps naturally) -->
     <TextView
         android:id="@+id/tv_display_text"
         android:layout_width="match_parent"
@@ -85,7 +85,6 @@
         android:textColor="@color/text_primary"
         android:textSize="@dimen/text_size_primary"
         android:gravity="center_vertical"
-        android:scrollHorizontally="true"
         android:lineSpacingExtra="6dp"
         android:padding="8dp"
         android:text="@string/primary_waiting" />
@@ -103,58 +102,45 @@
         android:layout_marginTop="2dp"
         android:layout_marginBottom="2dp" />
 
-    <!-- Keyboard with floating overlay hints -->
-    <FrameLayout
+    <!-- Hint strip: pinyin buffer, encouragement, hint -->
+    <TextView
+        android:id="@+id/tv_pinyin_buffer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/color_gold"
+        android:textSize="@dimen/text_size_hint"
+        android:gravity="center"
+        android:padding="1dp" />
+
+    <TextView
+        android:id="@+id/tv_encourage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="@color/color_gold"
+        android:textSize="@dimen/encourage_text_size"
+        android:padding="1dp" />
+
+    <TextView
+        android:id="@+id/tv_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/primary_hint"
+        android:textColor="@color/text_hint"
+        android:textSize="@dimen/text_size_hint"
+        android:gravity="center"
+        android:padding="1dp" />
+
+    <!-- Keyboard (no overlay, nothing blocking it) -->
+    <com.honglu.typing.ui.KeyboardView
+        android:id="@+id/keyboard_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1.2">
-
-        <com.honglu.typing.ui.KeyboardView
-            android:id="@+id/keyboard_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:focusable="true"
-            android:background="@color/bg_secondary" />
-
-        <!-- Overlay hints at top of keyboard -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:orientation="vertical"
-            android:background="@color/bg_secondary">
-
-            <TextView
-                android:id="@+id/tv_pinyin_buffer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="@color/color_gold"
-                android:textSize="@dimen/text_size_hint"
-                android:gravity="center"
-                android:padding="1dp" />
-
-            <TextView
-                android:id="@+id/tv_encourage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:textStyle="bold"
-                android:gravity="center"
-                android:textColor="@color/color_gold"
-                android:textSize="@dimen/encourage_text_size"
-                android:padding="1dp" />
-
-            <TextView
-                android:id="@+id/tv_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/primary_hint"
-                android:textColor="@color/text_hint"
-                android:textSize="@dimen/text_size_hint"
-                android:gravity="center"
-                android:padding="1dp" />
-        </LinearLayout>
-    </FrameLayout>
+        android:layout_weight="1"
+        android:focusable="true"
+        android:background="@color/bg_secondary" />
 
 </LinearLayout>

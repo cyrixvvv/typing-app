@@ -1,6 +1,5 @@
 package com.honglu.typing.main
 
-import android.app.AlertDialog
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Spannable
@@ -9,6 +8,7 @@ import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.view.KeyEvent
+import android.view.View
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -34,7 +34,7 @@ class AdvancedModeActivity : AppCompatActivity() {
 
         binding.tvBack.setOnClickListener { finish() }
 
-        // Accept content selection intent (from external callers)
+        // Accept content selection intent
         val contentId = intent.getStringExtra("content_id")
         val contentLang = intent.getStringExtra("content_lang")
         if (contentId != null) {
@@ -42,6 +42,11 @@ class AdvancedModeActivity : AppCompatActivity() {
                 if (contentLang == "Chinese") ContentMode.CHINESE else ContentMode.ENGLISH
             )
         }
+
+        // Steal focus from tv_back — focus the root layout
+        binding.root.isFocusable = true
+        binding.root.isFocusableInTouchMode = true
+        binding.root.requestFocus()
 
         // ---- Text display ----
         viewModel.currentText.observe(this) { updateDisplayText() }
@@ -58,9 +63,7 @@ class AdvancedModeActivity : AppCompatActivity() {
         // ---- Hints ----
         viewModel.hintText.observe(this) { binding.tvHint.text = it }
         viewModel.pinyinBuffer.observe(this) { buf ->
-            if (buf.isNotEmpty()) {
-                binding.tvHint.text = "拼音: $buf"
-            }
+            if (buf.isNotEmpty()) binding.tvHint.text = buf
         }
 
         // ---- Wrong flash ----
@@ -75,7 +78,7 @@ class AdvancedModeActivity : AppCompatActivity() {
             }
         }
 
-        // ---- Pinyin candidate ----
+        // ---- Pinyin candidate (only for Chinese mode) ----
         viewModel.selectingCandidates.observe(this) { selecting ->
             if (!selecting) binding.tvHint.text = viewModel.hintText.value ?: ""
         }
@@ -86,8 +89,10 @@ class AdvancedModeActivity : AppCompatActivity() {
         setupModeTabs()
         viewModel.contentMode.observe(this) { updateTabHighlights() }
 
-        // ---- Completion ----
-        viewModel.completionEvent.observe(this) { showCompletionDialog() }
+        // ---- Completion: auto-advance to next content ----
+        viewModel.completionEvent.observe(this) {
+            viewModel.nextContent()
+        }
     }
 
     // ==================== Content Mode Tabs ====================
@@ -143,31 +148,22 @@ class AdvancedModeActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, R.color.text_secondary)), index + 1, fullText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         binding.tvDisplayText.text = ssb
-
-        // Auto-scroll: center current character
-        binding.tvDisplayText.post {
-            val layout = binding.tvDisplayText.layout ?: return@post
-            val lastIdx = index.coerceAtMost(layout.text.length - 1)
-            val x = layout.getPrimaryHorizontal(lastIdx)
-            val target = (x - binding.tvDisplayText.width / 2f).toInt().coerceAtLeast(0)
-            if (target != binding.tvDisplayText.scrollX) {
-                binding.tvDisplayText.scrollTo(target, 0)
-            }
-        }
     }
 
     // ==================== Pinyin Candidate ====================
 
     private fun updateCandidateHint() {
-        val idx = viewModel.candidateIndex.value ?: 0
         val list = viewModel.candidateList.value ?: emptyList()
-        val c = if (list.isNotEmpty()) list.getOrElse(idx) { "" } else ""
+        if (list.isEmpty()) return
+        val idx = viewModel.candidateIndex.value ?: 0
+        val c = list.getOrElse(idx) { "" }
         binding.tvHint.text = "候选: [$c] ← → 切换, Enter确认"
     }
 
     // ==================== Key Events ====================
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // SPACE must always be intercepted before focus system sees it
         if (event.keyCode == KeyEvent.KEYCODE_SPACE) {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 val handled = viewModel.onKeyDown(KeyEvent.KEYCODE_SPACE, event.metaState)
@@ -185,31 +181,6 @@ class AdvancedModeActivity : AppCompatActivity() {
             return viewModel.onCandidateKey(event.keyCode)
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    // ==================== Completion ====================
-
-    private fun showCompletionDialog() {
-        val wpm = viewModel.wpm.value ?: 0f
-        val cpm = viewModel.cpm.value ?: 0f
-        val accuracy = viewModel.accuracy.value ?: 0f
-        val score = viewModel.score.value ?: 0
-        val total = viewModel.totalScore.value ?: 0
-        val mode = viewModel.contentMode.value?.label ?: "英文"
-
-        AlertDialog.Builder(this)
-            .setTitle("练习完成！")
-            .setMessage("""
-                类型: $mode
-                WPM: %.0f
-                CPM: %.0f
-                正确率: %.0f%%
-                得分: $score
-                总分: $total
-            """.trimIndent().format(wpm, cpm, accuracy))
-            .setPositiveButton("再来一次") { _, _ -> viewModel.nextContent() }
-            .setNegativeButton("返回菜单") { _, _ -> finish() }
-            .show()
     }
 
     override fun onDestroy() {
