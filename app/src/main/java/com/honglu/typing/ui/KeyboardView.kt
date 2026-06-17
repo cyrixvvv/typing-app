@@ -5,68 +5,46 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.AnticipateOvershootInterpolator
 
-/**
- * Data model for a single keyboard key.
- */
 data class KeyboardKey(
     val label: String,
     val uppercaseLabel: String,
-    val widthRatio: Float = 1f,   // relative width multiplier
-    val marginLeft: Float = 0f,   // offset from left edge (key widths)
+    val widthRatio: Float = 1f,
+    val marginLeft: Float = 0f,
     val isShift: Boolean = false,
-    val isTab: Boolean = false,
-    val isCapsLock: Boolean = false,
-    val isShiftLock: Boolean = false,
-    val isEnter: Boolean = false,
-    val isBackspace: Boolean = false,
     val isSpace: Boolean = false
 ) {
     val displayLabel: String
-        get() = if (isShift && !isShiftLock) uppercaseLabel else label
+        get() = label
 }
 
-/**
- * Custom QWERTY keyboard View.
- * Draws key rectangles with labels, supports highlighting the expected key,
- * marking pressed keys, and flashing animation for timeout warning.
- */
 class KeyboardView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // 3 rows of keys
     companion object {
         val ROWS = listOf(
-            // Row 1: ` 1 2 3 4 5 6 7 8 9 0 - = [ ] \   (simplified: ` ~ Q W E R T Y U I O P [ ] \)
+            // Row 1: Q W E R T Y U I O P
             listOf(
-                KeyboardKey("`", "~", 0.8f, marginLeft = 0f),
-                KeyboardKey("1", "!", 0.8f),
-                KeyboardKey("2", "@", 0.8f),
-                KeyboardKey("3", "#", 0.8f),
-                KeyboardKey("4", "$", 0.8f),
-                KeyboardKey("5", "%", 0.8f),
-                KeyboardKey("6", "^", 0.8f),
-                KeyboardKey("7", "&", 0.8f),
-                KeyboardKey("8", "*", 0.8f),
-                KeyboardKey("9", "(", 0.8f),
-                KeyboardKey("0", ")", 0.8f),
-                KeyboardKey("-", "_", 0.8f),
-                KeyboardKey("=", "+", 0.8f),
-                KeyboardKey("[", "{"),
-                KeyboardKey("]", "}"),
-                KeyboardKey("\\", "|", 1.1f)
+                KeyboardKey("q", "Q"),
+                KeyboardKey("w", "W"),
+                KeyboardKey("e", "E"),
+                KeyboardKey("r", "R"),
+                KeyboardKey("t", "T"),
+                KeyboardKey("y", "Y"),
+                KeyboardKey("u", "U"),
+                KeyboardKey("i", "I"),
+                KeyboardKey("o", "O"),
+                KeyboardKey("p", "P"),
             ),
-            // Row 2: Tab A S D F G H J K L ; ' Enter
+            // Row 2: A S D F G H J K L ; '
             listOf(
-                KeyboardKey("Tab", "TAB", 1.3f, marginLeft = 0f),
                 KeyboardKey("a", "A"),
                 KeyboardKey("s", "S"),
                 KeyboardKey("d", "D"),
@@ -78,11 +56,9 @@ class KeyboardView @JvmOverloads constructor(
                 KeyboardKey("l", "L"),
                 KeyboardKey(";", ";"),
                 KeyboardKey("'", "'"),
-                KeyboardKey("Enter", "ENTER", 1.5f)
             ),
-            // Row 3: Shift Z X C V B N M , . / Shift
+            // Row 3: Z X C V B N M , . /
             listOf(
-                KeyboardKey("Shift", "SHIFT", 1.6f, marginLeft = 0f),
                 KeyboardKey("z", "Z"),
                 KeyboardKey("x", "X"),
                 KeyboardKey("c", "C"),
@@ -93,18 +69,20 @@ class KeyboardView @JvmOverloads constructor(
                 KeyboardKey(",", ","),
                 KeyboardKey(".", "."),
                 KeyboardKey("/", "/"),
-                KeyboardKey("Shift", "SHIFT", 1.6f)
-            )
+            ),
+            // Row 4: Space bar (wide)
+            listOf(
+                KeyboardKey("Space", "SPACE", widthRatio = 1f, isSpace = true),
+            ),
         )
 
-        // Map key label to char for matching
         fun keyLabelToChar(key: KeyboardKey): Char? {
-            if (key.isTab || key.isShift || key.isEnter) return null
+            if (key.isSpace) return ' '
+            if (key.isShift) return null
             return key.label.firstOrNull()
         }
     }
 
-    // Rendering state
     var highlightedKey: Char? = null
         set(value) {
             field = value
@@ -153,11 +131,6 @@ class KeyboardView @JvmOverloads constructor(
         color = Color.parseColor("#E74C3C")
     }
 
-    private val correctPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.parseColor("#2ECC71")
-    }
-
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.WHITE
@@ -165,12 +138,11 @@ class KeyboardView @JvmOverloads constructor(
         isFakeBoldText = true
     }
 
-    // Layout calculations
+    // Layout state
     private var keyWidth = 0f
     private var keyHeight = 0f
-    private var keyGap = 0f
-    private var rowStartY = 0f
-    private var totalKeyRowWidth = 0f
+    private var keyGap = 6f
+    private val sidePadding = 32f
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -178,95 +150,81 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun calculateLayout(width: Int, height: Int) {
-        val padding = 32f
-        val usableWidth = width - padding * 2
-        val usableHeight = height - padding * 2 - 60f // leave space for last row
-
-        keyGap = 6f
-        val totalRowKeys = 13f // max keys in a row (row 2)
-
-        // Calculate key width based on total width
-        val totalKeyWidth = totalRowKeys + 0.3f + 0.3f // extra width for Tab and Enter keys
-        keyWidth = (usableWidth - keyGap * (totalRowKeys + 1)) / totalKeyWidth
-        keyHeight = keyWidth * 0.65f
-
-        val rowsAvailable = height - padding * 2
-        val keyRows = 3
-        rowStartY = (rowsAvailable - keyHeight * keyRows - keyGap * (keyRows - 1)) / 2f
+        val usableWidth = width - sidePadding * 2
+        // Find the longest row (by total widthRatio)
+        val maxRowWidthRatio = ROWS.maxOf { row ->
+            row.sumOf { it.widthRatio.toDouble() }.toFloat()
+        }
+        val maxRowKeyCount = ROWS.maxOf { it.size }
+        keyGap = Math.max(4f, usableWidth * 0.012f)
+        keyWidth = (usableWidth - keyGap * (maxRowKeyCount + 1)) / maxRowWidthRatio
+        keyHeight = keyWidth * 0.6f
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        var currentX = 32f // left padding
+        val totalRows = ROWS.size
+        val totalHeight = totalRows * keyHeight + (totalRows - 1) * keyGap
+        var rowStartY = (height - totalHeight) / 2f
 
         ROWS.forEachIndexed { rowIndex, row ->
             val y = rowStartY + rowIndex * (keyHeight + keyGap)
+            var currentX = sidePadding
 
-            row.forEach { key ->
+            // Compute total width of this row
+            val rowTotalRatio = row.sumOf { it.widthRatio.toDouble() }.toFloat()
+            val rowTotalWidth = rowTotalRatio * keyWidth + (row.size - 1) * keyGap
+            val usableWidth = width - sidePadding * 2
+            // Center the row horizontally
+            val rowOffset = (usableWidth - rowTotalWidth) / 2f
+            currentX += rowOffset
+
+            for (key in row) {
                 val drawWidth = keyWidth * key.widthRatio
-
-                // Calculate x position with marginLeft
-                var xPos = currentX
-                if (key.marginLeft > 0) {
-                    xPos = currentX + key.marginLeft * keyWidth + keyGap
-                }
-
-                drawKey(canvas, xPos, y, drawWidth, keyHeight, key)
-
-                // Advance cursor
-                currentX = xPos + drawWidth + keyGap
+                drawKey(canvas, currentX, y, drawWidth, keyHeight, key)
+                currentX += drawWidth + keyGap
             }
         }
     }
 
-    private fun drawKey(
-        canvas: Canvas,
-        x: Float,
-        y: Float,
-        w: Float,
-        h: Float,
-        key: KeyboardKey
-    ) {
-        val char = keyLabelToChar(key)
-
-        // Determine paint based on state
+    private fun drawKey(canvas: Canvas, x: Float, y: Float, w: Float, h: Float, key: KeyboardKey) {
+        val char = if (key.isSpace) ' ' else keyLabelToChar(key)
         var bgPaint = keyPaint
         var borderColor = keyBorderPaint.color
 
-        if (flashActive && char != null) {
+        if (flashActive && char != null && !key.isSpace) {
             bgPaint = if (flashColor == Color.RED) wrongPaint else highlightPaint
-        } else if (char == highlightedKey && char != null) {
+        } else if (char != null && char == highlightedKey) {
             bgPaint = highlightPaint
             borderColor = highlightBorderPaint.color
-        } else if (char in pressedKeys) {
+        } else if (char != null && char in pressedKeys) {
             bgPaint = pressedPaint
+        } else if (key.isSpace) {
+            // Space bar: slightly different shade
+            bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = Color.parseColor("#34495E")
+            }
         }
 
-        // Draw key background
         val radius = 12f
         canvas.drawRoundRect(RectF(x, y, x + w, y + h), radius, radius, bgPaint)
-
-        // Draw border
         keyBorderPaint.color = borderColor
         canvas.drawRoundRect(RectF(x, y, x + w, y + h), radius, radius, keyBorderPaint)
 
         // Draw label
         val label = key.displayLabel
-        textPaint.textSize = keyWidth * 0.45f
-        val textY = y + h / 2f - textPaint.textBoundsCenterOffset(textPaint, label)
+        textPaint.textSize = keyHeight * 0.38f
+        val textBounds = android.graphics.Rect()
+        textPaint.getTextBounds(label, 0, label.length, textBounds)
+        val textY = y + h / 2f - (textPaint.ascent() + textPaint.descent()) / 2f
         canvas.drawText(label, x + w / 2f, textY, textPaint)
     }
 
-    /**
-     * Start flash animation for timeout warning.
-     */
     fun startFlashAnimation() {
         flashActive = true
         flashColor = Color.RED
-        val duration = 500L
-
-        val animator = ValueAnimator.ofFloat(0f, 1f).setDuration(duration)
+        val animator = ValueAnimator.ofFloat(0f, 1f).setDuration(500)
         animator.interpolator = AnticipateOvershootInterpolator()
         animator.addUpdateListener { animation ->
             flashColor = if (animation.animatedFraction > 0.5f) Color.RED else Color.WHITE
@@ -274,16 +232,11 @@ class KeyboardView @JvmOverloads constructor(
         }
         animator.repeatCount = ValueAnimator.INFINITE
         animator.start()
-
-        // Store for cleanup
         _flashAnimator = animator
     }
 
     private var _flashAnimator: ValueAnimator? = null
 
-    /**
-     * Stop flash animation and reset visual state.
-     */
     fun stopFlashAnimation() {
         flashActive = false
         _flashAnimator?.cancel()
@@ -292,24 +245,10 @@ class KeyboardView @JvmOverloads constructor(
         postInvalidate()
     }
 
-    /**
-     * Reset all visual state.
-     */
     fun resetAll() {
         highlightedKey = null
         pressedKeys = emptySet()
         stopFlashAnimation()
         postInvalidate()
-    }
-
-    /**
-     * Get paint text bounds center offset for text vertically centering.
-     */
-    private fun Paint.textBoundsCenterOffset(textPaint: Paint, text: String): Float {
-        val rect = android.graphics.Rect()
-        textPaint.getTextBounds(text, 0, text.length, rect)
-        val ascent = textPaint.ascent()
-        val bottom = rect.bottom.toFloat()
-        return -ascent / 2f + (bottom - rect.bottom) / 2f
     }
 }
