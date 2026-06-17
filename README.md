@@ -1,3 +1,5 @@
+> 利用家里闲置的 Android 电视/盒子，搭配无线键盘（蓝牙或 2.4G）或 USB 有线键盘，即可让小朋友练习打字。最低支持 Android 5.1，无需联网，可自由复制、自由分享。
+
 # 星星打字通 (XX-Typing)
 
 [![Build](https://github.com/cyrixvvv/typing-app/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/cyrixvvv/typing-app/actions/workflows)
@@ -330,6 +332,6 @@ Unresolved reference: source  (但 DeviceUtils.kt 中明明有 device.source())
 | Docker buildx QEMU 编译 40 分钟未完成 | ARM → x86 交叉编译，每步都需 QEMU 模拟 | 放弃 Docker 方案，统一走 GitHub Actions |
 | workflow_dispatch 未出现在 Actions 页面 | trigger 配置在 `on` 下但未在 workflow_dispatch 下正确声明 | 当前配置已修复，`workflow_dispatch` 独立声明 |
 
-## 许可
+## License
 
-内部项目
+[MIT](https://opensource.org/licenses/MIT)
