@@ -55,7 +55,7 @@ class PrimaryModeActivity : AppCompatActivity() {
         viewModel.currentIndex.observe(this) { /* not needed directly */ }
         viewModel.wpm.observe(this) { binding.tvWpm.text = "WPM: %.0f".format(it) }
         viewModel.accuracy.observe(this) { binding.tvAccuracy.text = "正确率: %.0f%%".format(it) }
-        viewModel.score.observe(this) { binding.tvScore.text = "得分: %.0f".format(it) }
+        viewModel.score.observe(this) { binding.tvScore.text = "得分: %d".format(it) }
         viewModel.hintText.observe(this) { binding.tvHint.text = it }
         viewModel.encouragement.observe(this) { /* not used in primary */ }
 
