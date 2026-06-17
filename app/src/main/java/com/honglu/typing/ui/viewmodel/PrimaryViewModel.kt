@@ -71,6 +71,17 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     private var pendingContentLang: String? = null
     private var candidatePageOffset = 0
 
+    // 中文标点集合，输入时自动跳过
+    companion object {
+        private val chinesePunctuationSet = setOf(
+            '，', '。', '、', '；', '：', '？', '！',
+            '‘', '’', '“', '”', '（', '）',
+            '【', '】', '《', '》', '—', '…', '·'
+        )
+
+        private fun isChinesePunctuation(c: Char): Boolean = c in chinesePunctuationSet
+    }
+
     init {
         loadDictionary()
         startTimeoutWatcher()
@@ -123,7 +134,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         when (keyCode) {
             KeyEvent.KEYCODE_SPACE -> {
                 if (selectingCandidates.value == true) {
-                    if (isChineseContent) candidateIndex.value = 0 // SPACE picks first
+                    if (isChineseContent) candidateIndex.value = candidatePageOffset // SPACE picks first
                     confirmCandidate()
                     return true
                 }
@@ -209,7 +220,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         // Chinese mode: number keys select candidates directly (key N → index N-1)
         if (selectingCandidates.value == true && isChineseContent &&
             keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9) {
-            val idx = keyCode - KeyEvent.KEYCODE_1
+            val idx = candidatePageOffset + (keyCode - KeyEvent.KEYCODE_1)
             val list = candidateList.value ?: emptyList()
             if (idx in list.indices) {
                 candidateIndex.value = idx
@@ -223,6 +234,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
 
         // Chinese pinyin input
         if (isChineseContent && char in 'a'..'z') {
+            autoSkipPunctuation()
             pinyinAccumulator += char
             pinyinBuffer.value = pinyinAccumulator
             if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
@@ -252,6 +264,13 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         updateUiFromEngine()
         if (engine.isComplete()) handleCompletion()
         return true
+    }
+
+    private fun autoSkipPunctuation() {
+        while (engine.currentIndex < engine.currentText.length &&
+            isChinesePunctuation(engine.currentText[engine.currentIndex])) {
+            engine.currentIndex++
+        }
     }
 
     private fun scheduleClearPressedKeys() {
@@ -305,7 +324,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> { confirmCandidate(); true }
             KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> { cancelCandidateSelection(); true }
             in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 -> {
-                val idx = keyCode - KeyEvent.KEYCODE_1
+                val idx = candidatePageOffset + (keyCode - KeyEvent.KEYCODE_1)
                 val list = candidateList.value ?: emptyList()
                 if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
                 true
@@ -320,7 +339,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         val pageSize = 9
         val offset = candidatePageOffset.coerceIn(0, (candidates.size - 1).coerceAtLeast(0))
         val page = candidates.drop(offset).take(pageSize)
-        val items = page.mapIndexed { i, c -> "${offset + i + 1}.$c" }.joinToString("  ")
+        val items = page.mapIndexed { i, c -> "${i + 1}.$c" }.joinToString("  ")
         val total = candidates.size
         val pageInfo = if (total > pageSize) " [${offset / pageSize + 1}/${(total + pageSize - 1) / pageSize}]" else ""
         hintText.value = "拼音: $pinyinAccumulator$pageInfo  $items"
@@ -339,6 +358,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         engine.correctKeystrokes++
         engine.totalKeystrokes++
         soundManager.playCorrect()
+        autoSkipPunctuation()
         updateUiFromEngine()
         resetPinyinState()
         hintText.value = ""

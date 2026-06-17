@@ -118,7 +118,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         when (keyCode) {
             KeyEvent.KEYCODE_SPACE -> {
                 if (selectingCandidates.value == true) {
-                    if (isChineseContent) candidateIndex.value = 0 // SPACE picks first
+                    if (isChineseContent) candidateIndex.value = candidatePageOffset // SPACE picks first
                     confirmCandidate(); return true
                 }
                 if (!engine.isRunning && !engine.isComplete()) {
@@ -192,9 +192,10 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         if (selectingCandidates.value == true && isChineseContent &&
             keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9) {
             val idx = keyCode - KeyEvent.KEYCODE_1
+            val absIdx = candidatePageOffset + idx
             val list = candidateList.value ?: emptyList()
-            if (idx in list.indices) {
-                candidateIndex.value = idx
+            if (absIdx in list.indices) {
+                candidateIndex.value = absIdx
                 confirmCandidate()
             }
             return true
@@ -205,6 +206,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
 
         // Chinese pinyin input
         if (isChineseContent && char in 'a'..'z') {
+            autoSkipPunctuation()
             pinyinAccumulator += char
             pinyinBuffer.value = pinyinAccumulator
             if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
@@ -230,6 +232,13 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     }
 
     // --- Pinyin ---
+
+    private fun autoSkipPunctuation() {
+        while (engine.currentIndex < engine.currentText.length &&
+            isChinesePunctuation(engine.currentText[engine.currentIndex])) {
+            engine.currentIndex++
+        }
+    }
 
     private fun handleDelWithCandidates() {
         if (pinyinAccumulator.isEmpty()) return
@@ -272,7 +281,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
             KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> { confirmCandidate(); true }
             KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> { cancelCandidateSelection(); true }
             in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 -> {
-                val idx = keyCode - KeyEvent.KEYCODE_1
+                val idx = candidatePageOffset + (keyCode - KeyEvent.KEYCODE_1)
                 val list = candidateList.value ?: emptyList()
                 if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
                 true
@@ -287,7 +296,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         val pageSize = 9
         val offset = candidatePageOffset.coerceIn(0, (candidates.size - 1).coerceAtLeast(0))
         val page = candidates.drop(offset).take(pageSize)
-        val items = page.mapIndexed { i, c -> "${offset + i + 1}.$c" }.joinToString("  ")
+        val items = page.mapIndexed { i, c -> "${i + 1}.$c" }.joinToString("  ")
         val total = candidates.size
         val pageInfo = if (total > pageSize) " [${offset / pageSize + 1}/${(total + pageSize - 1) / pageSize}]" else ""
         hintText.value = "拼音: $pinyinAccumulator$pageInfo  $items"
@@ -304,6 +313,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         engine.correctKeystrokes++
         engine.totalKeystrokes++
         soundManager.playCorrect()
+        autoSkipPunctuation()
         updateUiFromEngine()
         resetPinyinState()
         hintText.value = ""
@@ -402,7 +412,16 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
 
     // --- Content Pools ---
 
+    // 中文标点集合，输入时自动跳过
     companion object {
+        private val chinesePunctuationSet = setOf(
+            '，', '。', '、', '；', '：', '？', '！',
+            '‘', '’', '“', '”', '（', '）',
+            '【', '】', '《', '》', '—', '…', '·'
+        )
+
+        private fun isChinesePunctuation(c: Char): Boolean = c in chinesePunctuationSet
+
         private val numberTexts = listOf(
             "Room 304 is on the 2nd floor with 15 chairs and 3 tables.",
             "The access code is 5421 and the backup pin is 9876.",
