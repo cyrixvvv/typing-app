@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Primary mode layout: text display area + KeyboardView -->
+<!-- Primary mode layout: weight-balanced for small TV screens -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -21,7 +21,7 @@
             android:text="@string/primary_back"
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/text_size_hint"
-            android:padding="16dp"
+            android:padding="12dp"
             android:clickable="true"
             android:focusable="true"
             android:background="?android:attr/selectableItemBackground" />
@@ -37,39 +37,18 @@
             android:gravity="center" />
 
         <View
-            android:layout_width="80dp"
-            android:layout_height="wrap_content" />
+            android:layout_width="60dp"
+            android:layout_height="1dp" />
     </LinearLayout>
 
-    <!-- Typing text display area -->
-    <TextView
-        android:id="@+id/tv_display_text"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="3"
-        android:textColor="@color/text_primary"
-        android:textSize="@dimen/text_size_primary"
-        android:gravity="center"
-        android:lineSpacingExtra="8dp"
-        android:padding="16dp" />
-
-    <!-- Progress hint line -->
-    <TextView
-        android:id="@+id/tv_progress_hint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="@dimen/text_size_hint"
-        android:textColor="@color/text_secondary"
-        android:gravity="center"
-        android:padding="8dp" />
-
-    <!-- Status bar: WPM, accuracy -->
+    <!-- Status bar: WPM, accuracy, score -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:padding="8dp">
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
         <TextView
             android:id="@+id/tv_wpm"
@@ -80,8 +59,8 @@
             android:textSize="@dimen/text_size_stats" />
 
         <View
-            android:layout_width="24dp"
-            android:layout_height="wrap_content" />
+            android:layout_width="16dp"
+            android:layout_height="1dp" />
 
         <TextView
             android:id="@+id/tv_accuracy"
@@ -92,8 +71,8 @@
             android:textSize="@dimen/text_size_stats" />
 
         <View
-            android:layout_width="24dp"
-            android:layout_height="wrap_content" />
+            android:layout_width="16dp"
+            android:layout_height="1dp" />
 
         <TextView
             android:id="@+id/tv_score"
@@ -104,6 +83,29 @@
             android:textSize="@dimen/text_size_stats" />
     </LinearLayout>
 
+    <!-- Typing text display area + keyboard (split remaining space 3:4) -->
+    <TextView
+        android:id="@+id/tv_display_text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_size_primary"
+        android:gravity="center"
+        android:lineSpacingExtra="6dp"
+        android:padding="12dp"
+        android:text="按下空格键开始" />
+
+    <!-- Simple progress line -->
+    <TextView
+        android:id="@+id/tv_progress_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:padding="4dp" />
+
     <!-- Hint: Space to start -->
     <TextView
         android:id="@+id/tv_hint"
@@ -111,16 +113,17 @@
         android:layout_height="wrap_content"
         android:text="@string/primary_hint"
         android:textColor="@color/text_hint"
-        android:textSize="@dimen/text_size_hint"
+        android:textSize="20sp"
         android:gravity="center"
-        android:padding="8dp" />
+        android:padding="4dp" />
 
     <!-- Divider -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="2dp"
+        android:layout_height="1dp"
         android:background="@color/text_hint"
-        android:layout_margin="8dp" />
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp" />
 
     <!-- Keyboard area -->
     <com.honglu.typing.ui.KeyboardView
@@ -128,6 +131,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="4"
+        android:focusable="true"
         android:background="@color/bg_secondary" />
 
 </LinearLayout>

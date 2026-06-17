@@ -12,3 +12,6 @@ build/
 
 # Local config
 .local
+
+# Gradle caches
+.gradle/
