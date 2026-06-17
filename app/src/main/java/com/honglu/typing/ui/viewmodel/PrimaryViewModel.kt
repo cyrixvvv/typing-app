@@ -247,7 +247,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         val candidate = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: ""
         val candidates = candidateList.value ?: emptyList()
         val total = candidates.size
-        hintText.value = "拼音: $pinyinAccumulator → [$candidate] ($total选) ← → Enter确认"
+        hintText.value = "拼音: $pinyinAccumulator → [$candidate] (${total}选) ← → Enter确认"
     }
 
     private fun confirmCandidate() {

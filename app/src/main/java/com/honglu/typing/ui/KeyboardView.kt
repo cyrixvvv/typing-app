@@ -12,7 +12,7 @@ import android.view.animation.AnticipateOvershootInterpolator
 
 data class KeyboardKey(
     val label: String,
-    val uppercaseLabel: String,
+    val uppercaseLabel: String = label.uppercase(),
     val widthRatio: Float = 1f,
     val marginLeft: Float = 0f,
     val isSpace: Boolean = false
@@ -27,19 +27,33 @@ class KeyboardView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        val ROWS = listOf(
+        val ROWS: List<List<KeyboardKey>> = listOf(
             // Row 1: 1 2 3 4 5 6 7 8 9 0
-            (1..9).map { KeyboardKey("$it", "$it", 0.75f) } +
-                listOf(KeyboardKey("0", "0", 0.75f)),
+            listOf(
+                KeyboardKey("1", "1", 0.75f), KeyboardKey("2", "2", 0.75f),
+                KeyboardKey("3", "3", 0.75f), KeyboardKey("4", "4", 0.75f),
+                KeyboardKey("5", "5", 0.75f), KeyboardKey("6", "6", 0.75f),
+                KeyboardKey("7", "7", 0.75f), KeyboardKey("8", "8", 0.75f),
+                KeyboardKey("9", "9", 0.75f), KeyboardKey("0", "0", 0.75f)
+            ),
             // Row 2: Q W E R T Y U I O P
-            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
-                .map { KeyboardKey(it, it.uppercase()) },
+            listOf(
+                KeyboardKey("q"), KeyboardKey("w"), KeyboardKey("e"), KeyboardKey("r"),
+                KeyboardKey("t"), KeyboardKey("y"), KeyboardKey("u"), KeyboardKey("i"),
+                KeyboardKey("o"), KeyboardKey("p")
+            ),
             // Row 3: A S D F G H J K L ; '
-            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l") +
-                listOf(KeyboardKey(";", ";"), KeyboardKey("'", "'")),
+            listOf(
+                KeyboardKey("a"), KeyboardKey("s"), KeyboardKey("d"), KeyboardKey("f"),
+                KeyboardKey("g"), KeyboardKey("h"), KeyboardKey("j"), KeyboardKey("k"),
+                KeyboardKey("l"), KeyboardKey(";"), KeyboardKey("'")
+            ),
             // Row 4: Z X C V B N M , . /
-            listOf("z", "x", "c", "v", "b", "n", "m") +
-                listOf(KeyboardKey(",", ","), KeyboardKey(".", "."), KeyboardKey("/", "/")),
+            listOf(
+                KeyboardKey("z"), KeyboardKey("x"), KeyboardKey("c"), KeyboardKey("v"),
+                KeyboardKey("b"), KeyboardKey("n"), KeyboardKey("m"),
+                KeyboardKey(","), KeyboardKey("."), KeyboardKey("/")
+            ),
             // Row 5: wide space bar
             listOf(KeyboardKey("Space", "SPACE", widthRatio = 10f, isSpace = true))
         )

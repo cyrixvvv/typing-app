@@ -238,7 +238,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     private fun updateCandidateHint() {
         val candidate = candidateList.value?.getOrNull(candidateIndex.value ?: 0) ?: ""
         val total = (candidateList.value ?: emptyList()).size
-        hintText.value = "拼音: $pinyinAccumulator → [$candidate] ($total选) ← → Enter确认"
+        hintText.value = "拼音: $pinyinAccumulator → [$candidate] (${total}选) ← → Enter确认"
     }
 
     private fun confirmCandidate() {
