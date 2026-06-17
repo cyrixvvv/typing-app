@@ -43,6 +43,9 @@ class PrimaryModeActivity : AppCompatActivity() {
 
         binding.tvBack.setOnClickListener { finish() }
 
+        // Focus keyboard so SPACE doesn't jump to nav buttons
+        binding.keyboardView.requestFocus()
+
         // Keyboard bindings
         binding.keyboardView.highlightedKey = viewModel.highlightedKey.value ?: null
         binding.keyboardView.pressedKeys = viewModel.pressedKeys.value ?: emptySet()
@@ -87,9 +90,9 @@ class PrimaryModeActivity : AppCompatActivity() {
             }
         }
 
-        // Pinyin candidate
+        // Pinyin candidate — merged into tv_hint
         viewModel.selectingCandidates.observe(this) { selecting ->
-            if (!selecting) binding.tvProgressHint.text = ""
+            if (!selecting) binding.tvHint.text = viewModel.hintText.value ?: ""
         }
         viewModel.candidateList.observe(this) { list ->
             if (list.isNotEmpty()) updateCandidateHint()
@@ -154,12 +157,17 @@ class PrimaryModeActivity : AppCompatActivity() {
         val index = viewModel.candidateIndex.value ?: 0
         val list = viewModel.candidateList.value ?: emptyList()
         val candidate = if (list.isNotEmpty()) list.getOrElse(index) { "" } else ""
-        binding.tvProgressHint.text = "候选: [$candidate] ← → 切换, Enter确认"
+        binding.tvHint.text = "候选: [$candidate] ← → 切换, Enter确认"
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) {
             return super.dispatchKeyEvent(event)
+        }
+        // ESC → finish()
+        if (event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            finish()
+            return true
         }
         val handled = viewModel.onKeyDown(event.keyCode, event.metaState)
         if (handled) return true

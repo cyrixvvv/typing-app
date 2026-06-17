@@ -35,6 +35,9 @@ class AdvancedModeActivity : AppCompatActivity() {
 
         binding.tvBack.setOnClickListener { finish() }
 
+        // Focus keyboard so SPACE doesn't jump to nav buttons
+        binding.keyboardView.requestFocus()
+
         // Keyboard bindings
         binding.keyboardView.highlightedKey = viewModel.highlightedKey.value ?: null
         binding.keyboardView.pressedKeys = viewModel.pressedKeys.value ?: emptySet()
@@ -142,6 +145,11 @@ class AdvancedModeActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action != KeyEvent.ACTION_DOWN) {
             return super.dispatchKeyEvent(event)
+        }
+        // ESC → finish()
+        if (event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            finish()
+            return true
         }
         val handled = viewModel.onKeyDown(event.keyCode, event.metaState)
         if (handled) return true

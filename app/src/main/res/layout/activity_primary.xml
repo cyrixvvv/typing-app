@@ -102,16 +102,6 @@
         android:layout_marginTop="2dp"
         android:layout_marginBottom="2dp" />
 
-    <!-- Pinyin candidate / hint line -->
-    <TextView
-        android:id="@+id/tv_progress_hint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="@dimen/text_size_hint"
-        android:textColor="@color/color_gold"
-        android:gravity="center"
-        android:padding="2dp" />
-
     <!-- Encouragement text -->
     <TextView
         android:id="@+id/tv_encourage"
@@ -141,6 +131,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="4"
+        android:focusable="true"
         android:background="@color/bg_secondary" />
 
 </LinearLayout>

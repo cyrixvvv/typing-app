@@ -15,11 +15,9 @@ data class KeyboardKey(
     val uppercaseLabel: String,
     val widthRatio: Float = 1f,
     val marginLeft: Float = 0f,
-    val isShift: Boolean = false,
     val isSpace: Boolean = false
 ) {
-    val displayLabel: String
-        get() = label
+    val displayLabel: String get() = label
 }
 
 class KeyboardView @JvmOverloads constructor(
@@ -30,115 +28,64 @@ class KeyboardView @JvmOverloads constructor(
 
     companion object {
         val ROWS = listOf(
-            // Row 1: Q W E R T Y U I O P
-            listOf(
-                KeyboardKey("q", "Q"),
-                KeyboardKey("w", "W"),
-                KeyboardKey("e", "E"),
-                KeyboardKey("r", "R"),
-                KeyboardKey("t", "T"),
-                KeyboardKey("y", "Y"),
-                KeyboardKey("u", "U"),
-                KeyboardKey("i", "I"),
-                KeyboardKey("o", "O"),
-                KeyboardKey("p", "P"),
-            ),
-            // Row 2: A S D F G H J K L ; '
-            listOf(
-                KeyboardKey("a", "A"),
-                KeyboardKey("s", "S"),
-                KeyboardKey("d", "D"),
-                KeyboardKey("f", "F"),
-                KeyboardKey("g", "G"),
-                KeyboardKey("h", "H"),
-                KeyboardKey("j", "J"),
-                KeyboardKey("k", "K"),
-                KeyboardKey("l", "L"),
-                KeyboardKey(";", ";"),
-                KeyboardKey("'", "'"),
-            ),
-            // Row 3: Z X C V B N M , . /
-            listOf(
-                KeyboardKey("z", "Z"),
-                KeyboardKey("x", "X"),
-                KeyboardKey("c", "C"),
-                KeyboardKey("v", "V"),
-                KeyboardKey("b", "B"),
-                KeyboardKey("n", "N"),
-                KeyboardKey("m", "M"),
-                KeyboardKey(",", ","),
-                KeyboardKey(".", "."),
-                KeyboardKey("/", "/"),
-            ),
-            // Row 4: Space bar (wide)
-            listOf(
-                KeyboardKey("Space", "SPACE", widthRatio = 1f, isSpace = true),
-            ),
+            // Row 1: 1 2 3 4 5 6 7 8 9 0
+            (1..9).map { KeyboardKey("$it", "$it", 0.75f) } +
+                listOf(KeyboardKey("0", "0", 0.75f)),
+            // Row 2: Q W E R T Y U I O P
+            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
+                .map { KeyboardKey(it, it.uppercase()) },
+            // Row 3: A S D F G H J K L ; '
+            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l") +
+                listOf(KeyboardKey(";", ";"), KeyboardKey("'", "'")),
+            // Row 4: Z X C V B N M , . /
+            listOf("z", "x", "c", "v", "b", "n", "m") +
+                listOf(KeyboardKey(",", ","), KeyboardKey(".", "."), KeyboardKey("/", "/")),
+            // Row 5: wide space bar
+            listOf(KeyboardKey("Space", "SPACE", widthRatio = 10f, isSpace = true))
         )
 
         fun keyLabelToChar(key: KeyboardKey): Char? {
             if (key.isSpace) return ' '
-            if (key.isShift) return null
             return key.label.firstOrNull()
         }
     }
 
     var highlightedKey: Char? = null
-        set(value) {
-            field = value
-            postInvalidate()
-        }
+        set(value) { field = value; postInvalidate() }
 
     var pressedKeys: Set<Char> = emptySet()
-        set(value) {
-            field = value
-            postInvalidate()
-        }
+        set(value) { field = value; postInvalidate() }
 
+    // Flash state — only affects highlightedKey
     private var flashActive = false
     private var flashColor: Int = Color.TRANSPARENT
 
-    // Paint objects
+    // Paints
     private val keyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.parseColor("#2C3E50")
     }
-
     private val keyBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 2f
+        style = Paint.Style.STROKE; strokeWidth = 2f
         color = Color.parseColor("#34495E")
     }
-
     private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.parseColor("#F39C12")
+        style = Paint.Style.FILL; color = Color.parseColor("#F39C12")
     }
-
     private val highlightBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 4f
-        color = Color.parseColor("#F1C40F")
+        style = Paint.Style.STROKE; strokeWidth = 4f; color = Color.parseColor("#F1C40F")
     }
-
     private val pressedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.parseColor("#5D6D7E")
+        style = Paint.Style.FILL; color = Color.parseColor("#5D6D7E")
     }
-
-    private val wrongPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.parseColor("#E74C3C")
+    private val flashPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL; color = Color.RED
     }
-
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = Color.WHITE
-        textAlign = Paint.Align.CENTER
-        isFakeBoldText = true
+        style = Paint.Style.FILL; color = Color.WHITE
+        textAlign = Paint.Align.CENTER; isFakeBoldText = true
     }
 
-    // Layout state
     private var keyWidth = 0f
     private var keyHeight = 0f
     private var keyGap = 6f
@@ -151,14 +98,13 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun calculateLayout(width: Int, height: Int) {
         val usableWidth = width - sidePadding * 2
-        // Find the longest row (by total widthRatio)
         val maxRowWidthRatio = ROWS.maxOf { row ->
             row.sumOf { it.widthRatio.toDouble() }.toFloat()
         }
         val maxRowKeyCount = ROWS.maxOf { it.size }
-        keyGap = Math.max(4f, usableWidth * 0.012f)
+        keyGap = maxOf(4f, usableWidth * 0.01f)
         keyWidth = (usableWidth - keyGap * (maxRowKeyCount + 1)) / maxRowWidthRatio
-        keyHeight = keyWidth * 0.6f
+        keyHeight = keyWidth * 0.55f
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -170,12 +116,9 @@ class KeyboardView @JvmOverloads constructor(
         ROWS.forEachIndexed { rowIndex, row ->
             val y = rowStartY + rowIndex * (keyHeight + keyGap)
             var currentX = sidePadding
-
-            // Compute total width of this row
             val rowTotalRatio = row.sumOf { it.widthRatio.toDouble() }.toFloat()
             val rowTotalWidth = rowTotalRatio * keyWidth + (row.size - 1) * keyGap
             val usableWidth = width - sidePadding * 2
-            // Center the row horizontally
             val rowOffset = (usableWidth - rowTotalWidth) / 2f
             currentX += rowOffset
 
@@ -191,20 +134,22 @@ class KeyboardView @JvmOverloads constructor(
         val char = if (key.isSpace) ' ' else keyLabelToChar(key)
         var bgPaint = keyPaint
         var borderColor = keyBorderPaint.color
+        val isHighlighted = char != null && char == highlightedKey
+        val isPressed = char != null && char in pressedKeys
 
-        if (flashActive && char != null && !key.isSpace) {
-            bgPaint = if (flashColor == Color.RED) wrongPaint else highlightPaint
-        } else if (char != null && char == highlightedKey) {
-            bgPaint = highlightPaint
-            borderColor = highlightBorderPaint.color
-        } else if (char != null && char in pressedKeys) {
-            bgPaint = pressedPaint
-        } else if (key.isSpace) {
-            // Space bar: slightly different shade
-            bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = Color.parseColor("#34495E")
+        when {
+            // Flash animation — only affects the highlighted key
+            flashActive && isHighlighted -> {
+                bgPaint = flashPaint
+                borderColor = Color.RED
             }
+            // Normal highlight (expected key)
+            isHighlighted -> {
+                bgPaint = highlightPaint
+                borderColor = highlightBorderPaint.color
+            }
+            // Pressed key feedback
+            isPressed -> bgPaint = pressedPaint
         }
 
         val radius = 12f
@@ -212,22 +157,19 @@ class KeyboardView @JvmOverloads constructor(
         keyBorderPaint.color = borderColor
         canvas.drawRoundRect(RectF(x, y, x + w, y + h), radius, radius, keyBorderPaint)
 
-        // Draw label
         val label = key.displayLabel
         textPaint.textSize = keyHeight * 0.38f
-        val textBounds = android.graphics.Rect()
-        textPaint.getTextBounds(label, 0, label.length, textBounds)
         val textY = y + h / 2f - (textPaint.ascent() + textPaint.descent()) / 2f
         canvas.drawText(label, x + w / 2f, textY, textPaint)
     }
 
     fun startFlashAnimation() {
         flashActive = true
-        flashColor = Color.RED
+        flashPaint.color = Color.RED
         val animator = ValueAnimator.ofFloat(0f, 1f).setDuration(500)
         animator.interpolator = AnticipateOvershootInterpolator()
         animator.addUpdateListener { animation ->
-            flashColor = if (animation.animatedFraction > 0.5f) Color.RED else Color.WHITE
+            flashPaint.color = if (animation.animatedFraction > 0.5f) Color.RED else Color.parseColor("#FF6B6B")
             postInvalidate()
         }
         animator.repeatCount = ValueAnimator.INFINITE
@@ -241,7 +183,6 @@ class KeyboardView @JvmOverloads constructor(
         flashActive = false
         _flashAnimator?.cancel()
         _flashAnimator = null
-        flashColor = Color.TRANSPARENT
         postInvalidate()
     }
 
