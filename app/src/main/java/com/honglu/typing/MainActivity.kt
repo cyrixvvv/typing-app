@@ -34,5 +34,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnExit.setOnClickListener {
             finishAffinity()
         }
+
+        // Version display
+        binding.tvVersion.text = "Ver ${BuildConfig.VERSION_NAME}"
     }
 }

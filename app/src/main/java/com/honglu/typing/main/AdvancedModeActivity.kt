@@ -78,20 +78,22 @@ class AdvancedModeActivity : AppCompatActivity() {
             }
         }
 
-        // ---- Pinyin candidate (only for Chinese mode) ----
+        // ---- Pinyin candidate (ViewModel handles hintText, just restore when deselected) ----
         viewModel.selectingCandidates.observe(this) { selecting ->
             if (!selecting) binding.tvHint.text = viewModel.hintText.value ?: ""
         }
-        viewModel.candidateList.observe(this) { if (it.isNotEmpty()) updateCandidateHint() }
-        viewModel.candidateIndex.observe(this) { updateCandidateHint() }
 
         // ---- Content mode selector ----
         setupModeTabs()
         viewModel.contentMode.observe(this) { updateTabHighlights() }
 
-        // ---- Completion: auto-advance to next content ----
+        // ---- Completion: auto-advance to next content (defer to avoid observer crash) ----
         viewModel.completionEvent.observe(this) {
-            viewModel.nextContent()
+            binding.root.post {
+                try {
+                    viewModel.nextContent()
+                } catch (_: Exception) { }
+            }
         }
     }
 
@@ -153,16 +155,6 @@ class AdvancedModeActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, R.color.text_secondary)), index + 1, fullText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         binding.tvDisplayText.text = ssb
-    }
-
-    // ==================== Pinyin Candidate ====================
-
-    private fun updateCandidateHint() {
-        val list = viewModel.candidateList.value ?: emptyList()
-        if (list.isEmpty()) return
-        val idx = viewModel.candidateIndex.value ?: 0
-        val c = list.getOrElse(idx) { "" }
-        binding.tvHint.text = "候选: [$c] ← → 切换, Enter确认"
     }
 
     // ==================== Key Events ====================

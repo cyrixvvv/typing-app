@@ -69,6 +69,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     private var isChineseContent = false
     private var pendingContentId: String? = null
     private var pendingContentLang: String? = null
+    private var candidatePageOffset = 0
 
     init {
         loadDictionary()
@@ -112,6 +113,7 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         selectingCandidates.value = false
         candidateList.value = emptyList()
         candidateIndex.value = 0
+        candidatePageOffset = 0
     }
 
     fun onKeyDown(keyCode: Int, metaState: Int): Boolean {
@@ -155,14 +157,14 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             }
             KeyEvent.KEYCODE_DEL -> {
                 if (selectingCandidates.value == true) {
-                    if (pinyinAccumulator.isNotEmpty()) {
-                        pinyinAccumulator = pinyinAccumulator.dropLast(1)
-                        pinyinBuffer.value = pinyinAccumulator
-                        if (pinyinAccumulator.isEmpty()) {
-                            cancelCandidateSelection()
-                        }
-                        return true
-                    }
+                    handleDelWithCandidates()
+                    return true
+                }
+                // Chinese: drop from pinyin accumulator even when not selecting
+                if (isChineseContent && pinyinAccumulator.isNotEmpty()) {
+                    pinyinAccumulator = pinyinAccumulator.dropLast(1)
+                    pinyinBuffer.value = pinyinAccumulator
+                    hintText.value = if (pinyinAccumulator.isEmpty()) "" else "拼音: $pinyinAccumulator"
                     return true
                 }
                 if (engine.currentIndex > 0) {
@@ -183,12 +185,36 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        // Chinese mode: number keys select candidates directly when selecting
+        // Candidate pagination in Chinese mode: =/. next, -/, prev
+        if (selectingCandidates.value == true && isChineseContent) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_EQUALS, KeyEvent.KEYCODE_PERIOD -> {
+                    val total = (candidateList.value ?: emptyList()).size
+                    if (total > 9) {
+                        candidatePageOffset = (candidatePageOffset + 9).coerceAtMost(total - 1)
+                        updateCandidateHint()
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_COMMA -> {
+                    if (candidatePageOffset > 0) {
+                        candidatePageOffset = (candidatePageOffset - 9).coerceAtLeast(0)
+                        updateCandidateHint()
+                    }
+                    return true
+                }
+            }
+        }
+
+        // Chinese mode: number keys select candidates directly (key N → index N-1)
         if (selectingCandidates.value == true && isChineseContent &&
-            keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
-            val idx = keyCode - KeyEvent.KEYCODE_0
+            keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9) {
+            val idx = keyCode - KeyEvent.KEYCODE_1
             val list = candidateList.value ?: emptyList()
-            if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
+            if (idx in list.indices) {
+                candidateIndex.value = idx
+                confirmCandidate()
+            }
             return true
         }
 
@@ -238,6 +264,21 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
         wrongFlashJob = viewModelScope.launch { delay(300); wrongKeyFlash.value = false }
     }
 
+    private fun handleDelWithCandidates() {
+        if (pinyinAccumulator.isEmpty()) return
+        pinyinAccumulator = pinyinAccumulator.dropLast(1)
+        pinyinBuffer.value = pinyinAccumulator
+        if (pinyinAccumulator.isEmpty()) {
+            cancelCandidateSelection()
+        } else if (pinyinInputEngine.hasSuggestions(pinyinAccumulator)) {
+            candidatePageOffset = 0
+            showCandidates()
+        } else {
+            cancelCandidateSelection()
+            hintText.value = "拼音: $pinyinAccumulator"
+        }
+    }
+
     private fun showCandidates() {
         val suggestions = pinyinInputEngine.getSuggestions(pinyinAccumulator)
         if (suggestions.isNotEmpty()) {
@@ -263,8 +304,8 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
             }
             KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> { confirmCandidate(); true }
             KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> { cancelCandidateSelection(); true }
-            in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
-                val idx = keyCode - KeyEvent.KEYCODE_0
+            in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 -> {
+                val idx = keyCode - KeyEvent.KEYCODE_1
                 val list = candidateList.value ?: emptyList()
                 if (idx in list.indices) { candidateIndex.value = idx; confirmCandidate() }
                 true
@@ -276,8 +317,13 @@ class PrimaryViewModel(application: Application) : AndroidViewModel(application)
     private fun updateCandidateHint() {
         val candidates = candidateList.value ?: emptyList()
         if (candidates.isEmpty()) return
-        val items = candidates.take(9).mapIndexed { i, c -> "${i+1}.$c" }.joinToString("  ")
-        hintText.value = "拼音: $pinyinAccumulator  $items"
+        val pageSize = 9
+        val offset = candidatePageOffset.coerceIn(0, (candidates.size - 1).coerceAtLeast(0))
+        val page = candidates.drop(offset).take(pageSize)
+        val items = page.mapIndexed { i, c -> "${offset + i + 1}.$c" }.joinToString("  ")
+        val total = candidates.size
+        val pageInfo = if (total > pageSize) " [${offset / pageSize + 1}/${(total + pageSize - 1) / pageSize}]" else ""
+        hintText.value = "拼音: $pinyinAccumulator$pageInfo  $items"
     }
 
     private fun confirmCandidate() {

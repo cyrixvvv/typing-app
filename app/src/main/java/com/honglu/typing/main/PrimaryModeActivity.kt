@@ -103,19 +103,21 @@ class PrimaryModeActivity : AppCompatActivity() {
             }
         }
 
-        // Pinyin candidate
+        // Pinyin candidate (ViewModel handles hintText, just restore when deselected)
         viewModel.selectingCandidates.observe(this) { selecting ->
             if (!selecting) binding.tvHint.text = viewModel.hintText.value ?: ""
         }
-        viewModel.candidateList.observe(this) { if (it.isNotEmpty()) updateCandidateHint() }
-        viewModel.candidateIndex.observe(this) { updateCandidateHint() }
 
-        // Completion
+        // Completion (defer to next frame to avoid re-entrant LiveData observer crash)
         viewModel.completionEvent.observe(this) {
-            if (viewModel.autoAdvance) {
-                viewModel.nextContent()
-            } else {
-                showCompletionDialog()
+            binding.root.post {
+                try {
+                    if (viewModel.autoAdvance) {
+                        viewModel.nextContent()
+                    } else {
+                        showCompletionDialog()
+                    }
+                } catch (_: Exception) { }
             }
         }
     }
@@ -144,14 +146,6 @@ class PrimaryModeActivity : AppCompatActivity() {
             ssb.setSpan(ForegroundColorSpan(ContextCompat.getColor(this, R.color.text_secondary)), index + 1, fullText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         binding.tvDisplayText.text = ssb
-    }
-
-    private fun updateCandidateHint() {
-        val list = viewModel.candidateList.value ?: emptyList()
-        if (list.isEmpty()) return
-        val idx = viewModel.candidateIndex.value ?: 0
-        val c = list.getOrElse(idx) { "" }
-        binding.tvHint.text = "候选: [$c] ← → 切换, Enter确认"
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
