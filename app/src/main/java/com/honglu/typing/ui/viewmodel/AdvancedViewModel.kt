@@ -20,18 +20,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
-/**
- * ViewModel for Advanced mode (WPM/CPM test).
- */
 class AdvancedViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context: Context get() = getApplication()
 
-    // Engine and managers
     private val engine = TypingEngine()
     private val scoreManager = ScoreManager(context)
     private val soundManager = SoundManager(context)
-    private val pinyinInputEngine = PinyinInputEngine()
     private val recordDao: RecordDao by lazy {
         AppDatabase.getInstance(context).recordDao()
     }
@@ -44,33 +39,32 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     val cpm = MutableLiveData<Float>(0f)
     val accuracy = MutableLiveData<Float>(100f)
     val score = MutableLiveData<Int>(0)
+    val highlightedKey = MutableLiveData<Char?>(null)
+    val pressedKeys = MutableLiveData<Set<Char>>(emptySet())
     val progress = MutableLiveData<Float>(0f)
     val flashActive = MutableLiveData<Boolean>(false)
     val encouragement = MutableLiveData<String>("")
-    val hintText = MutableLiveData<String>("Press SPACE to start")
-    // Completion event
+    val hintText = MutableLiveData<String>(context.getString(R.string.primary_hint))
     val completionEvent = MutableLiveData<Unit>()
 
-    // Timeout handling
+    // Extra stats for advanced mode
+    val totalKeystrokes = MutableLiveData<Int>(0)
+    val errorKeystrokes = MutableLiveData<Int>(0)
+
+    val wrongKeyFlash = MutableLiveData<Boolean>(false)
+
     private var lastActivityTime = 0L
     private val timeoutSeconds = 5L
     private var timeoutJob: Job? = null
+    private var clearKeysJob: Job? = null
+    private var wrongFlashJob: Job? = null
+    private var isChineseContent = false
 
     init {
-        loadDictionary()
         startNewSession()
         startTimeoutWatcher()
     }
 
-    private fun loadDictionary() {
-        try {
-            pinyinInputEngine.loadDictionary(context, "pinyin_dict.json")
-        } catch (e: Exception) {
-            // Dictionary load fails; pinyin features disabled
-        }
-    }
-
-    /** Start a new typing session with random English or Chinese text */
     fun startNewSession() {
         val text = if ((0..1).random() == 0) {
             ContentRepository.getRandomEnglishText(context)
@@ -78,38 +72,38 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
             ContentRepository.getRandomChineseText(context)
         }
         if (text.isNotEmpty()) {
+            isChineseContent = text.any { it in '一'..'鿿' }
             engine.start(text, TypingEngine.Mode.ADVANCED)
             updateUiFromEngine()
-            hintText.value = context.getString(R.string.primary_hint) // reuse same hint
+            hintText.value = context.getString(R.string.primary_hint)
+            wrongKeyFlash.value = false
+            totalKeystrokes.value = 0
+            errorKeystrokes.value = 0
         }
     }
 
-    /** Call from Activity on key down event */
     fun onKeyDown(keyCode: Int, metaState: Int): Boolean {
-        // Reset timeout timer
         lastActivityTime = System.currentTimeMillis()
         restartTimeoutWatcher()
 
-        // Handle special keys BEFORE char mapping (SPACE not in keyCodeToChar)
         when (keyCode) {
-            android.view.KeyEvent.KEYCODE_SPACE,
-            android.view.KeyEvent.KEYCODE_ENTER,
-            android.view.KeyEvent.KEYCODE_DPAD_CENTER -> {
+            KeyEvent.KEYCODE_SPACE,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
                 if (!engine.isRunning && !engine.isComplete()) {
                     engine.markStarted()
                     hintText.value = ""
                 }
                 return true
             }
-            android.view.KeyEvent.KEYCODE_DEL -> {
+            KeyEvent.KEYCODE_DEL -> {
                 if (engine.currentIndex > 0) {
                     engine.currentIndex--
                     updateUiFromEngine()
                 }
                 return true
             }
-            android.view.KeyEvent.KEYCODE_ESCAPE, android.view.KeyEvent.KEYCODE_BACK -> {
-                // Let Activity handle back press
+            KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> {
                 return false
             }
         }
@@ -117,21 +111,49 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         val shift = (metaState and KeyEvent.META_SHIFT_MASK) != 0
         val char = DeviceUtils.keyCodeToChar(keyCode, shift) ?: return false
 
-        // Process as regular key
         val isCorrect = engine.processKeyPress(char)
-        // Update UI
-        updateUiFromEngine()
-        // Play sound
+
+        // Keyboard visual feedback
+        highlightedKey.value = engine.getNextExpectedChar()
+        val lower = char.lowercaseChar()
+        pressedKeys.value = setOf(lower)
+        scheduleClearPressedKeys()
+
+        // Stats
+        totalKeystrokes.value = engine.totalKeystrokes
+        errorKeystrokes.value = engine.wrongKeystrokes
+
         if (isCorrect) {
             soundManager.playCorrect()
+            wrongKeyFlash.value = false
         } else {
             soundManager.playWrong()
+            wrongKeyFlash.value = true
+            scheduleClearWrongFlash()
         }
-        // Check completion
+
+        updateUiFromEngine()
+
         if (engine.isComplete()) {
             handleCompletion()
         }
         return true
+    }
+
+    private fun scheduleClearPressedKeys() {
+        clearKeysJob?.cancel()
+        clearKeysJob = viewModelScope.launch {
+            delay(180)
+            pressedKeys.value = emptySet()
+        }
+    }
+
+    private fun scheduleClearWrongFlash() {
+        wrongFlashJob?.cancel()
+        wrongFlashJob = viewModelScope.launch {
+            delay(300)
+            wrongKeyFlash.value = false
+        }
     }
 
     private fun updateUiFromEngine() {
@@ -142,6 +164,7 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         cpm.value = engine.calculateCpm()
         accuracy.value = engine.calculateAccuracy()
         score.value = calculateScore()
+        highlightedKey.value = engine.getNextExpectedChar()
         progress.value = engine.getProgress()
         updateEncouragement()
     }
@@ -159,22 +182,19 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
 
     private fun updateEncouragement() {
         val streak = engine.consecutiveCorrect
-        val encourage = when {
+        encouragement.value = when {
             streak >= 50 -> context.getString(R.string.encourage_excellent)
             streak >= 20 -> context.getString(R.string.encourage_good)
             streak >= 10 -> context.getString(R.string.encourage_keep)
             else -> ""
         }
-        encouragement.value = encourage
     }
 
     private fun handleCompletion() {
-        // Record result
         viewModelScope.launch {
-            val isChinese = engine.currentText.any { it in '一'..'鿿' }
             val record = RecordEntity(
                 mode = "advanced",
-                contentType = if (isChinese) "cn_paragraph" else "en_short",
+                contentType = if (isChineseContent) "cn_paragraph" else "en_short",
                 wpm = engine.calculateWpm(),
                 cpm = engine.calculateCpm(),
                 accuracy = engine.calculateAccuracy(),
@@ -188,7 +208,6 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
         completionEvent.value = Unit
     }
 
-    // Timeout watcher
     private fun startTimeoutWatcher() {
         timeoutJob?.cancel()
         timeoutJob = viewModelScope.launch {
@@ -208,6 +227,8 @@ class AdvancedViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         super.onCleared()
         timeoutJob?.cancel()
+        clearKeysJob?.cancel()
+        wrongFlashJob?.cancel()
         soundManager.cleanup()
     }
 }

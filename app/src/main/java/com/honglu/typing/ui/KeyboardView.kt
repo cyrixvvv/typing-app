@@ -45,21 +45,24 @@ class KeyboardView @JvmOverloads constructor(
     // 3 rows of keys
     companion object {
         val ROWS = listOf(
-            // Row 1: ~ Q W E R T Y U I O P [ ]
+            // Row 1: ` 1 2 3 4 5 6 7 8 9 0 - = [ ] \   (simplified: ` ~ Q W E R T Y U I O P [ ] \)
             listOf(
-                KeyboardKey("`", "`", 0.8f, marginLeft = 0f),
-                KeyboardKey("q", "Q"),
-                KeyboardKey("w", "W"),
-                KeyboardKey("e", "E"),
-                KeyboardKey("r", "R"),
-                KeyboardKey("t", "T"),
-                KeyboardKey("y", "Y"),
-                KeyboardKey("u", "U"),
-                KeyboardKey("i", "I"),
-                KeyboardKey("o", "O"),
-                KeyboardKey("p", "P"),
-                KeyboardKey("[", "["),
-                KeyboardKey("]", "]")
+                KeyboardKey("`", "~", 0.8f, marginLeft = 0f),
+                KeyboardKey("1", "!", 0.8f),
+                KeyboardKey("2", "@", 0.8f),
+                KeyboardKey("3", "#", 0.8f),
+                KeyboardKey("4", "$", 0.8f),
+                KeyboardKey("5", "%", 0.8f),
+                KeyboardKey("6", "^", 0.8f),
+                KeyboardKey("7", "&", 0.8f),
+                KeyboardKey("8", "*", 0.8f),
+                KeyboardKey("9", "(", 0.8f),
+                KeyboardKey("0", ")", 0.8f),
+                KeyboardKey("-", "_", 0.8f),
+                KeyboardKey("=", "+", 0.8f),
+                KeyboardKey("[", "{"),
+                KeyboardKey("]", "}"),
+                KeyboardKey("\\", "|", 1.1f)
             ),
             // Row 2: Tab A S D F G H J K L ; ' Enter
             listOf(

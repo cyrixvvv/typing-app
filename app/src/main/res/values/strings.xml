@@ -18,7 +18,7 @@
     <string name="advanced_wpm">WPM</string>
     <string name="advanced_cpm">CPM</string>
     <string name="advanced_accuracy">正确率</string>
-    <string name="advanced_errors">错误数</string>
+    <string name="advanced_errors">错误</string>
     <string name="advanced_score">得分</string>
 
     <!-- Encouragement messages -->

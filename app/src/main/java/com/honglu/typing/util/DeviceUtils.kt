@@ -26,7 +26,7 @@ object DeviceUtils {
 
     /**
      * Map Android key code to a character.
-     * Handles both uppercase and lowercase letters.
+     * Handles both uppercase and lowercase letters and common punctuation.
      */
     fun keyCodeToChar(keyCode: Int, shift: Boolean): Char? {
         return when (keyCode) {
@@ -66,6 +66,18 @@ object DeviceUtils {
             android.view.KeyEvent.KEYCODE_7 -> if (shift) '&' else '7'
             android.view.KeyEvent.KEYCODE_8 -> if (shift) '*' else '8'
             android.view.KeyEvent.KEYCODE_9 -> if (shift) '(' else '9'
+            // Punctuation
+            android.view.KeyEvent.KEYCODE_COMMA -> if (shift) '<' else ','
+            android.view.KeyEvent.KEYCODE_PERIOD -> if (shift) '>' else '.'
+            android.view.KeyEvent.KEYCODE_APOSTROPHE -> if (shift) '"' else '\''
+            android.view.KeyEvent.KEYCODE_SEMICOLON -> if (shift) ':' else ';'
+            android.view.KeyEvent.KEYCODE_SLASH -> if (shift) '?' else '/'
+            android.view.KeyEvent.KEYCODE_MINUS -> if (shift) '_' else '-'
+            android.view.KeyEvent.KEYCODE_EQUALS -> if (shift) '+' else '='
+            android.view.KeyEvent.KEYCODE_GRAVE -> if (shift) '~' else '`'
+            android.view.KeyEvent.KEYCODE_LEFT_BRACKET -> if (shift) '{' else '['
+            android.view.KeyEvent.KEYCODE_RIGHT_BRACKET -> if (shift) '}' else ']'
+            android.view.KeyEvent.KEYCODE_BACKSLASH -> if (shift) '|' else '\\'
             else -> null
         }
     }

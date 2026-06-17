@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Advanced mode layout: large text display + stats panel -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -36,9 +35,7 @@
             android:textStyle="bold"
             android:gravity="center" />
 
-        <View
-            android:layout_width="80dp"
-            android:layout_height="wrap_content" />
+        <View android:layout_width="80dp" android:layout_height="wrap_content" />
     </LinearLayout>
 
     <!-- Stats bar: WPM, CPM, accuracy, errors, score -->
@@ -74,7 +71,34 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <View android:layout_width="16dp" android:layout_height="wrap_content" />
+        <View android:layout_width="8dp" android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/advanced_cpm"
+                android:textStyle="bold"
+                android:textColor="@color/accent"
+                android:textSize="@dimen/text_size_stats" />
+
+            <TextView
+                android:id="@+id/tv_cpm_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View android:layout_width="8dp" android:layout_height="wrap_content" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -101,7 +125,34 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <View android:layout_width="16dp" android:layout_height="wrap_content" />
+        <View android:layout_width="8dp" android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/advanced_errors"
+                android:textStyle="bold"
+                android:textColor="@color/color_wrong"
+                android:textSize="@dimen/text_size_stats" />
+
+            <TextView
+                android:id="@+id/tv_errors_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_size_primary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View android:layout_width="8dp" android:layout_height="wrap_content" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -139,33 +190,34 @@
         android:progressBackgroundTint="@color/bg_key"
         android:max="100"
         android:progress="0"
-        android:layout_margin="8dp" />
+        android:layout_margin="4dp" />
 
-    <!-- Main typing text area (large) -->
+    <!-- Main typing text area -->
     <TextView
         android:id="@+id/tv_display_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="5"
+        android:layout_weight="4"
         android:textColor="@color/text_primary"
-        android:textSize="48sp"
+        android:textSize="36sp"
         android:gravity="center"
-        android:lineSpacingExtra="16dp"
-        android:padding="24dp" />
+        android:lineSpacingExtra="8dp"
+        android:padding="16dp"
+        android:text="准备就绪" />
 
     <!-- Encouragement area -->
     <TextView
         android:id="@+id/tv_encourage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:text=""
         android:textStyle="bold"
         android:gravity="center"
         android:textColor="@color/color_gold"
         android:textSize="@dimen/encourage_text_size" />
 
-    <!-- Hint: Space to start -->
+    <!-- Hint -->
     <TextView
         android:id="@+id/tv_hint"
         android:layout_width="match_parent"
@@ -174,6 +226,15 @@
         android:textColor="@color/text_hint"
         android:textSize="@dimen/text_size_hint"
         android:gravity="center"
-        android:padding="8dp" />
+        android:padding="4dp" />
+
+    <!-- Keyboard area -->
+    <com.honglu.typing.ui.KeyboardView
+        android:id="@+id/keyboard_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:focusable="true"
+        android:background="@color/bg_secondary" />
 
 </LinearLayout>
